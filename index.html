@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Élection Pondérée</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface2: #f9fafb;
+    --surface3: #e5e7eb;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.2);
+    --text: #111827;
+    --muted: #4b5563;
+    --accent: #2563eb;
+    --accent2: #1e40af;
+    --green: #059669;
+    --red: #dc2626;
+    --amber: #d97706;
+    --cyan: #0891b2;
+    --font-head: 'Inter', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-mono);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav-brand {
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+    margin-right: auto;
+  }
+  .nav-brand span { color: var(--accent2); }
+
+  .nav-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* PAGES */
+  .page { display: none; padding: 32px 24px; max-width: 900px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* TYPOGRAPHY */
+  h1 { font-family: var(--font-head); font-weight: 800; font-size: 28px; letter-spacing: -1px; margin-bottom: 4px; }
+  h2 { font-family: var(--font-head); font-weight: 700; font-size: 18px; letter-spacing: -0.5px; margin-bottom: 16px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  /* FORM */
+  label { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; display: block; margin-bottom: 6px; text-transform: uppercase; }
+  input, select, textarea {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 14px;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* BUTTONS */
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-danger { background: transparent; border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+  .btn-danger:hover { background: rgba(248,113,113,0.1); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+  }
+  .badge-accent { background: rgba(37,99,235,0.1); color: var(--accent); border: 1px solid rgba(37,99,235,0.2); }
+  .badge-green { background: rgba(5,150,105,0.1); color: var(--green); border: 1px solid rgba(5,150,105,0.2); }
+  .badge-red { background: rgba(220,38,38,0.1); color: var(--red); border: 1px solid rgba(220,38,38,0.2); }
+  .badge-amber { background: rgba(217,119,6,0.1); color: var(--amber); border: 1px solid rgba(217,119,6,0.2); }
+  .badge-gray { background: rgba(0,0,0,0.06); color: var(--muted); border: 1px solid var(--border); }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(0,0,0,0.02); }
+
+  /* LINK BOX */
+  .link-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .link-box code {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--cyan);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-family: var(--font-head); font-weight: 700; font-size: 28px; }
+  .stat-value.accent { color: var(--accent2); }
+  .stat-value.green { color: var(--green); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-bottom: 16px; }
+  .progress-meta { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .progress-name { font-size: 14px; font-family: var(--font-head); font-weight: 600; }
+  .progress-score { font-size: 13px; color: var(--muted); }
+  .progress-bar-bg {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bar-0 { background: var(--accent); }
+  .bar-1 { background: var(--green); }
+  .bar-2 { background: var(--amber); }
+  .bar-3 { background: var(--cyan); }
+  .bar-4 { background: var(--red); }
+
+  /* VOTER PAGE */
+  .voter-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--bg);
+  }
+  .voter-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .voter-title {
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .voter-subtitle { color: var(--muted); font-size: 12px; margin-bottom: 24px; }
+  .candidate-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .candidate-option:hover { border-color: var(--accent); background: rgba(124,106,245,0.05); }
+  .candidate-option.selected { border-color: var(--accent); background: rgba(124,106,245,0.12); }
+  .candidate-dot {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border2);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .candidate-option.selected .candidate-dot { border-color: var(--accent); background: var(--accent); }
+  .candidate-dot-inner {
+    width: 10px; height: 10px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 5l2.5 2.5 4.5-4.5' stroke='white' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .candidate-option.selected .candidate-dot-inner { opacity: 1; }
+  .candidate-option.maxed:not(.selected) { opacity: 0.4; pointer-events: none; }
+  .vote-counter {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .vote-counter-label { color: var(--muted); }
+  .vote-counter-val { font-family: var(--font-head); font-weight: 700; font-size: 16px; }
+  .vote-counter-val.full { color: var(--amber); }
+  .vote-counter-val.ok { color: var(--green); }
+  .candidate-name { font-family: var(--font-head); font-weight: 600; font-size: 15px; }
+  .candidate-desc { font-size: 12px; color: var(--muted); }
+
+  .success-state { text-align: center; padding: 24px 0; }
+  .success-icon { font-size: 48px; margin-bottom: 16px; }
+  .success-title { font-family: var(--font-head); font-weight: 700; font-size: 20px; margin-bottom: 8px; }
+  .success-text { color: var(--muted); font-size: 13px; }
+
+  .error-state { text-align: center; padding: 24px 0; }
+  .error-title { font-family: var(--font-head); font-weight: 700; font-size: 20px; color: var(--red); margin-bottom: 8px; }
+  .error-text { color: var(--muted); font-size: 13px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    margin: 16px;
+    transform: translateY(10px);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title { font-family: var(--font-head); font-weight: 700; font-size: 18px; margin-bottom: 20px; }
+  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* LIVE PAGE */
+  .live-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 32px;
+  }
+  .live-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: pulse-live 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--text);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 300;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: rgba(52,211,153,0.4); color: var(--green); }
+  #toast.error { border-color: rgba(248,113,113,0.4); color: var(--red); }
+
+  /* ADMIN PASS */
+  .admin-gate {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .admin-gate-card {
+    width: 100%; max-width: 360px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+  }
+
+  /* COPY BTN */
+  .copy-btn { cursor: pointer; font-size: 12px; color: var(--muted); background: none; border: none; font-family: var(--font-mono); transition: color 0.15s; padding: 4px; }
+  .copy-btn:hover { color: var(--text); }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 13px; }
+  .toggle-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .toggle {
+    width: 40px; height: 22px;
+    background: var(--surface3);
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 20px; }
+
+  tr.row-edit { cursor: pointer; }
+  tr.row-edit:hover td { background: rgba(37,99,235,0.05); }
+
+  /* ═════════ RESPONSIVE / MOBILE ═════════ */
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { overflow-x: hidden; max-width: 100%; }
+  body { min-height: 100vh; min-height: 100dvh; -webkit-tap-highlight-color: transparent; }
+  .card, .page, .voter-card, .modal { min-width: 0; }
+  code, td, .candidate-name, .candidate-desc { overflow-wrap: anywhere; }
+  .card-header { flex-wrap: wrap; gap: 10px; }
+  .card-header h2 { min-width: 0; }
+
+  @media (hover: none) {
+    .btn-primary:hover { transform: none; }
+    .candidate-option:hover { border-color: var(--border); background: transparent; }
+    .candidate-option.selected:hover { border-color: var(--accent); background: rgba(124,106,245,0.12); }
+  }
+
+  /* Tablettes et mobiles : tableaux -> cartes empilées */
+  @media (max-width: 820px) {
+    table, thead, tbody, tr, td { display: block; width: 100%; }
+    thead { display: none; }
+    tr { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; background: var(--surface2); }
+    tr:hover td { background: transparent; }
+    td { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+         padding: 6px 0; border: none; text-align: right; }
+    td::before { content: attr(data-label); font-size: 11px; text-transform: uppercase;
+                 letter-spacing: 0.5px; color: var(--muted); text-align: left; flex-shrink: 0; }
+    td:not([data-label])::before { content: none; }
+    td[colspan] { display: block; text-align: center; }
+    td.td-link { flex-direction: column; align-items: stretch; text-align: left; }
+    td.td-actions { justify-content: flex-end; padding-top: 8px; }
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 16px; margin-bottom: 12px; }
+    .subtitle { margin-bottom: 20px; }
+
+    nav { padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); gap: 6px; flex-wrap: wrap; }
+    .nav-brand { font-size: 15px; }
+    .nav-btn { padding: 8px 12px; min-height: 36px; }
+    #main-nav .btn { margin-left: 0 !important; }
+
+    .page { padding: 20px 12px calc(24px + env(safe-area-inset-bottom)); }
+    .card { padding: 16px 14px; border-radius: 10px; }
+    .card-header { align-items: flex-start; }
+    .card-header > div[style*="display:flex"] { width: 100%; }
+    .card-header > div[style*="display:flex"] .btn { flex: 1 1 auto; }
+
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-card { padding: 12px; }
+    .stat-value { font-size: 22px; }
+
+    /* Champs : 16px minimum pour éviter le zoom automatique iOS */
+    input, select, textarea { font-size: 16px; padding: 12px 14px; }
+    .btn { min-height: 44px; padding: 10px 16px; }
+    .btn-sm { min-height: 40px; }
+    .toggle-row { gap: 12px; }
+    #max-votes-select { font-size: 16px !important; min-height: 40px; }
+
+    .progress-meta { flex-direction: column; gap: 2px; align-items: flex-start; }
+
+    /* Page de vote */
+    .voter-wrap { justify-content: flex-start; padding: calc(12px + env(safe-area-inset-top)) 10px 10px; min-height: 100dvh; }
+    .voter-card { padding: 18px 14px; border-radius: 12px; }
+    .voter-title { font-size: 19px; }
+    .candidate-option { padding: 14px 12px; margin-bottom: 8px; min-height: 56px; }
+    #submit-vote-btn { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5;
+                       box-shadow: 0 -8px 16px var(--surface), 0 4px 14px rgba(0,0,0,0.18); }
+
+    /* Modales : plein écran défilant */
+    .modal-overlay { align-items: flex-end; }
+    .modal { margin: 0; max-width: 100%; border-radius: 16px 16px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+             max-height: 92dvh; overflow-y: auto; }
+    .modal-footer { flex-direction: column-reverse; }
+    .modal-footer .btn { width: 100%; }
+
+    /* Connexion admin */
+    .admin-gate { padding: 12px; align-items: flex-start; padding-top: 10vh; }
+    .admin-gate-card { padding: 24px 18px; }
+
+    #toast { left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav id="main-nav" style="display:none;">
+  <div class="nav-brand">vote<span>·</span>pondéré</div>
+  <button class="nav-btn" onclick="showPage('admin')" id="nav-admin">Admin</button>
+  <button class="nav-btn" onclick="showPage('live')" id="nav-live">Live</button>
+  <button class="nav-btn btn-ghost btn-sm" onclick="logout()" style="margin-left:8px;">Déco.</button>
+</nav>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ADMIN GATE -->
+<div id="admin-gate" class="admin-gate">
+  <div class="admin-gate-card">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:24px;letter-spacing:-1px;margin-bottom:4px;">vote<span style="color:#a78bfa;">·</span>pondéré</div>
+    <div style="color:rgba(240,240,248,0.45);font-size:12px;margin-bottom:28px;">Système d'élection anonyme</div>
+    <div id="gate-tabs" style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:4px;margin-bottom:20px;">
+      <button class="btn" style="flex:1;padding:7px;font-size:12px;" onclick="setGateMode('admin')" id="gate-admin-tab">Admin</button>
+      <button class="btn" style="flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);" onclick="setGateMode('voter')" id="gate-voter-tab">Voter</button>
+    </div>
+    <div id="gate-admin">
+      <label>Email admin</label>
+      <input type="email" id="admin-email-input" placeholder="admin@exemple.fr">
+      <label>Mot de passe</label>
+      <input type="password" id="admin-pass-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAdminPass()">
+      <button class="btn btn-primary" style="width:100%" onclick="checkAdminPass()">Accéder au panneau admin</button>
+    </div>
+    <div id="gate-voter" style="display:none;">
+      <label>Code de vote</label>
+      <input type="text" id="voter-token-input" placeholder="Entrez votre code unique" onkeydown="if(event.key==='Enter')accessVoterByCode()">
+      <button class="btn btn-primary" style="width:100%" onclick="accessVoterByCode()">Accéder au vote</button>
+      <div style="font-size:11px;color:var(--muted);margin-top:12px;">Entrez le code reçu par l'administrateur.</div>
+    </div>
+  </div>
+</div>
+
+<!-- VOTER PAGE -->
+<div id="voter-page" style="display:none;">
+  <div class="voter-wrap">
+    <div class="voter-card">
+      <div id="voter-content">
+        <!-- filled dynamically -->
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:16px;">vote·pondéré — anonyme &amp; sécurisé</div>
+  </div>
+</div>
+
+<!-- ADMIN + LIVE PAGES -->
+<div id="app-pages" style="display:none;">
+
+  <!-- ADMIN PAGE -->
+  <div id="page-admin" class="page active">
+    <h1>Panneau admin</h1>
+    <div class="subtitle">Gestion de l'élection — votes anonymisés</div>
+
+    <div class="stats-grid" id="admin-stats"></div>
+
+    <!-- Election settings -->
+    <div class="card">
+      <div class="card-header">
+        <h2 style="margin:0">Configuration</h2>
+        <div id="election-status-badge"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Élection ouverte</div>
+          <div class="toggle-desc">Active ou désactive les votes</div>
+        </div>
+        <div class="toggle" id="toggle-election" onclick="toggleElection()"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Page live publique</div>
+          <div class="toggle-desc">Permet l'accès à la vue temps réel</div>
+        </div>
+        <div class="toggle" id="toggle-live" onclick="toggleLive()"></div>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Maximum de candidats par votant</div>
+          <div class="toggle-desc">Actuellement : <span id="max-votes-display"></span> choix max (variable <code style="color:var(--accent2);font-size:11px">MAX_VOTES_PAR_VOTANT</code>)</div>
+        </div>
+        <select id="max-votes-select" onchange="updateMaxVotes(this.value)" style="width:auto;margin:0;padding:6px 10px;font-size:12px;">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="21">21</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Candidates -->
+    <div class="card">
+      <div class="card-header">
+        <h2 style="margin:0">Candidats</h2>
+        <button class="btn btn-primary btn-sm" onclick="openCandidateModal()">+ Ajouter</button>
+      </div>
+      <table id="candidates-table">
+        <thead><tr><th>Candidat</th><th>Description</th><th>Votes pondérés</th><th></th></tr></thead>
+        <tbody id="candidates-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Voters -->
+    <div class="card">
+      <div class="card-header">
+        <h2 style="margin:0">Votants <span id="voters-total" class="badge badge-gray" style="margin-left:8px"></span></h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('excel-input').click()">Importer Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="generateMissingVoterLinks()">Générer liens manquants</button>
+          <button class="btn btn-primary btn-sm" onclick="openVoterModal()">+ Ajouter</button>
+        </div>
+      </div>
+      <table id="voters-table">
+        <thead><tr><th>Club</th><th>Voix</th><th>Délégué</th><th>Email</th><th>Statut</th><th></th></tr></thead>
+        <tbody id="voters-tbody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h2 style="margin:0">Résultats</h2>
+        <span class="badge badge-gray">anonymisé</span>
+      </div>
+      <div id="admin-results"></div>
+    </div>
+
+    <!-- Generate links -->
+    <div class="card">
+      <div class="card-header">
+        <h2 style="margin:0">Liens de vote</h2>
+        <button class="btn btn-primary btn-sm" onclick="openLinkModal()">Générer un lien</button>
+      </div>
+      <table id="links-table">
+        <thead><tr><th>Label</th><th>Tours</th><th>Statut</th><th>Lien</th><th></th></tr></thead>
+        <tbody id="links-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LIVE PAGE -->
+  <div id="page-live" class="page">
+    <div class="live-header">
+      <div class="live-dot"></div>
+      <h1 style="margin:0">Résultats en direct</h1>
+    </div>
+    <div class="stats-grid" id="live-stats"></div>
+    <div id="live-results"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:24px;text-align:center;">Actualisation automatique toutes les 5 secondes</div>
+  </div>
+
+</div>
+
+<!-- MODAL: Candidat -->
+<div class="modal-overlay" id="candidate-modal">
+  <div class="modal">
+    <div class="modal-title" id="cand-modal-title">Ajouter un candidat</div>
+    <label>Nom</label>
+    <input type="text" id="cand-name" placeholder="Ex: Marie Dupont">
+    <label>Poste visé (optionnel)</label>
+    <input type="text" id="cand-desc" placeholder="Ex: Comité Directeur">
+    <div class="form-row">
+      <div>
+        <label>Genre</label>
+        <select id="cand-genre"><option value="">—</option><option value="H">Homme</option><option value="F">Femme</option></select>
+      </div>
+      <div>
+        <label>Siège médecin</label>
+        <select id="cand-medecin"><option value="N">Non</option><option value="O">Oui</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('candidate-modal')">Annuler</button>
+      <button class="btn btn-primary" id="cand-save-btn" onclick="saveCandidate()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Votant -->
+<div class="modal-overlay" id="voter-modal">
+  <div class="modal">
+    <div class="modal-title" id="voter-modal-title">Ajouter un votant</div>
+    <label>Club</label>
+    <input type="text" id="voter-club" placeholder="Ex: Maccabi Paris">
+    <label>Nombre de voix</label>
+    <input type="number" id="voter-voices" min="1" step="1" value="1">
+    <label>Nom du délégué</label>
+    <input type="text" id="voter-delegate" placeholder="Ex: Jean Dupont">
+    <label>Email du délégué</label>
+    <input type="email" id="voter-email" placeholder="Ex: jean@exemple.fr">
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('voter-modal')">Annuler</button>
+      <button class="btn btn-primary" id="voter-save-btn" onclick="saveVoter()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Lien -->
+<div class="modal-overlay" id="link-modal">
+  <div class="modal">
+    <div class="modal-title" id="link-modal-title">Générer un lien de vote</div>
+    <label>Label (identification interne)</label>
+    <input type="text" id="link-label" placeholder="Ex: Maire de Lyon — x5">
+    <label>Nombre de tours de vote</label>
+    <select id="link-multiplier" onchange="onMultiplierChange(this.value)">
+      <option value="1">1 tour — vote unique</option>
+      <option value="2">2 tours</option>
+      <option value="3">3 tours</option>
+      <option value="5" selected>5 tours</option>
+      <option value="10">10 tours</option>
+      <option value="20">20 tours</option>
+      <option value="custom">✏ Valeur personnalisée…</option>
+    </select>
+    <div id="custom-multiplier-wrap" style="display:none;margin-top:-8px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;color:var(--muted);white-space:nowrap;">Nb de tours :</span>
+        <input type="number" id="custom-multiplier-input" min="1" max="9999" step="1" placeholder="Ex : 7, 15, 30…" style="margin:0;flex:1;" oninput="validateCustomMultiplier(this)">
+      </div>
+      <div id="custom-multiplier-hint" style="font-size:11px;color:var(--muted);margin-top:4px;">Entrez un entier positif.</div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);margin-bottom:4px;">
+      Le nombre de tours n'est <strong style="color:var(--text)">pas visible</strong> dans le lien ni pour le votant. Seul l'admin le connaît.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('link-modal')">Annuler</button>
+      <button class="btn btn-primary" id="link-save-btn" onclick="saveLink()">Générer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirm delete -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title" id="confirm-title">Confirmer la suppression</div>
+    <div id="confirm-text" style="color:var(--muted);font-size:13px;margin-bottom:4px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Annuler</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ═══════════════════════════════
+//  CONFIG SUPABASE
+// ═══════════════════════════════
+//  Utiliser UNIQUEMENT la clé "anon / publishable", jamais la "service_role".
+const SUPABASE_URL      = 'https://bfkbbjyyeondlicsdwxu.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_pOrpulOAhnO-h6DaQVfacg_bmBdNJNr';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ═══════════════════════════════
+//  STATE (cache en mémoire — la source de vérité est Supabase)
+// ═══════════════════════════════
+let state = { settings: { election_open: false, live_enabled: false, max_votes: 20 },
+              candidates: [], voters: [], links: [], results: [], voteCount: 0 };
+let currentMode = null;   // 'admin' | 'voter' | null
+let gateMode = 'admin';
+let realtimeChannel = null;
+let refreshTimer = null;
+
+// ═══════════════════════════════
+//  UTILS
+// ═══════════════════════════════
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 2800);
+}
+
+function copy(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copié !', 'success')).catch(() => toast('Copie impossible', 'error'));
+}
+
+function getVoterUrl(token) {
+  return `${location.origin}${location.pathname}?vote=${token}`;
+}
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function candDesc(c) {
+  return [c.poste, c.genre, c.medecin ? 'Siège médecin' : ''].filter(Boolean).join(' · ');
+}
+
+// Exécute une requête Supabase, affiche l'erreur éventuelle. Retourne true si OK.
+function ok(res, okMsg) {
+  if (res.error) { console.error(res.error); toast(res.error.message || 'Erreur', 'error'); return false; }
+  if (okMsg) toast(okMsg, 'success');
+  return true;
+}
+
+// ═══════════════════════════════
+//  CHARGEMENT DES DONNÉES (admin)
+// ═══════════════════════════════
+async function loadAdminData() {
+  const [s, c, v, l, r, vc] = await Promise.all([
+    sb.from('settings').select('*').eq('id', 1).single(),
+    sb.from('candidates').select('*').order('position'),
+    sb.from('voters').select('*').order('club'),
+    sb.from('links').select('*').order('created_at'),
+    sb.rpc('get_results'),
+    sb.from('votes').select('*', { count: 'exact', head: true })
+  ]);
+  const failed = [s, c, v, l, r, vc].find(x => x.error);
+  if (failed) { ok(failed); return false; }
+  state = {
+    settings: s.data, candidates: c.data, voters: v.data, links: l.data,
+    results: r.data.map(x => ({ ...x, points: Number(x.points) })), voteCount: vc.count || 0
+  };
+  return true;
+}
+
+async function refresh() {
+  if (currentMode !== 'admin') return;
+  if (await loadAdminData()) {
+    renderAdmin();
+    if (document.getElementById('page-live').classList.contains('active')) renderLive();
+  }
+}
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(refresh, 400);
+}
+
+function startRealtime() {
+  if (realtimeChannel) return;
+  realtimeChannel = sb.channel('db-changes')
+    .on('postgres_changes', { event: '*', schema: 'public' }, scheduleRefresh)
+    .subscribe();
+}
+function stopRealtime() {
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+}
+
+// ═══════════════════════════════
+//  GATE / AUTH (Supabase Auth)
+// ═══════════════════════════════
+function setGateMode(m) {
+  gateMode = m;
+  document.getElementById('gate-admin').style.display = m === 'admin' ? '' : 'none';
+  document.getElementById('gate-voter').style.display = m === 'voter' ? '' : 'none';
+  document.getElementById('gate-admin-tab').style.cssText = m === 'admin' ? 'flex:1;padding:7px;font-size:12px;background:var(--accent);color:#fff;' : 'flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);';
+  document.getElementById('gate-voter-tab').style.cssText = m === 'voter' ? 'flex:1;padding:7px;font-size:12px;background:var(--accent);color:#fff;' : 'flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);';
+}
+
+async function checkAdminPass() {
+  const email = document.getElementById('admin-email-input').value.trim();
+  const password = document.getElementById('admin-pass-input').value;
+  if (!email || !password) { toast('Email et mot de passe requis', 'error'); return; }
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    toast('Identifiants incorrects', 'error');
+    document.getElementById('admin-pass-input').focus();
+    return;
+  }
+  enterAdmin();
+}
+
+async function enterAdmin() {
+  document.getElementById('admin-gate').style.display = 'none';
+  document.getElementById('voter-page').style.display = 'none';
+  document.getElementById('app-pages').style.display = 'block';
+  document.getElementById('main-nav').style.display = 'flex';
+  currentMode = 'admin';
+  showPage('admin');
+  startRealtime();
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  stopRealtime();
+  currentMode = null;
+  document.getElementById('admin-gate').style.display = 'flex';
+  document.getElementById('app-pages').style.display = 'none';
+  document.getElementById('main-nav').style.display = 'none';
+  document.getElementById('admin-pass-input').value = '';
+}
+
+function accessVoterByCode() {
+  const code = document.getElementById('voter-token-input').value.trim();
+  if (!code) return;
+  openVoterPage(code);
+}
+
+// ═══════════════════════════════
+//  VOTER PAGE (anonyme, via fonctions RPC)
+// ═══════════════════════════════
+// window._token / _tourActuel / _toursTotal / _maxChoix / _selectedIds / _summary
+
+function errorState(title, text, icon) {
+  return `<div class="error-state">
+    ${icon ? `<div style="font-size:36px;margin-bottom:12px;">${icon}</div>` : ''}
+    <div class="error-title">${title}</div>
+    <div class="error-text">${text}</div>
+  </div>`;
+}
+
+async function openVoterPage(token) {
+  document.getElementById('admin-gate').style.display = 'none';
+  document.getElementById('app-pages').style.display = 'none';
+  document.getElementById('main-nav').style.display = 'none';
+  document.getElementById('voter-page').style.display = 'block';
+  currentMode = 'voter';
+
+  const el = document.getElementById('voter-content');
+  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">Chargement…</div>';
+
+  const { data: st, error } = await sb.rpc('get_link_status', { p_token: token });
+  if (error) { el.innerHTML = errorState('Erreur', 'Connexion au serveur impossible.'); return; }
+
+  if (st.status === 'invalid') { el.innerHTML = errorState('Lien invalide', "Ce lien de vote n'existe pas ou a été supprimé."); return; }
+  if (st.status === 'used')    { el.innerHTML = errorState('Votes déjà enregistrés', 'Ce lien a déjà été utilisé. Tous vos votes ont été pris en compte.'); return; }
+  if (st.status === 'closed')  { el.innerHTML = errorState('Élection fermée', "L'élection n'est pas encore ouverte ou est terminée. Contactez l'administrateur.", '🔒'); return; }
+
+  const { data: cands, error: e2 } = await sb.from('candidates').select('*').order('position');
+  if (e2) { el.innerHTML = errorState('Erreur', 'Impossible de charger les candidats.'); return; }
+  state.candidates = cands;
+
+  window._token       = token;
+  window._toursTotal  = st.tours_total;
+  window._tourActuel  = st.tours_done + 1;   // reprise possible après rechargement
+  window._maxChoix    = Math.min(st.max_votes, cands.length);
+  window._summary     = {};
+  renderTourVote();
+}
+
+function renderTourVote() {
+  const el = document.getElementById('voter-content');
+  const tourActuel = window._tourActuel, toursTotal = window._toursTotal, maxChoix = window._maxChoix;
+  window._selectedIds = new Set();
+
+  const candidatesHTML = state.candidates.map(c => `
+    <div class="candidate-option" id="opt-${c.id}" onclick="toggleCandidate('${c.id}', this)">
+      <div class="candidate-dot"><div class="candidate-dot-inner"></div></div>
+      <div>
+        <div class="candidate-name">${esc(c.name)}</div>
+        ${candDesc(c) ? `<div class="candidate-desc">${esc(candDesc(c))}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  const dotsHTML = Array.from({ length: toursTotal }, (_, i) => {
+    const color = i < tourActuel - 1 ? 'var(--green)' : i === tourActuel - 1 ? 'var(--accent)' : 'var(--border2)';
+    return `<div style="width:8px;height:8px;border-radius:50%;background:${color};transition:background 0.3s;flex-shrink:0;"></div>`;
+  }).join('');
+
+  const pluriel = maxChoix > 1 ? `jusqu'à ${maxChoix} candidats` : `1 candidat`;
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div class="voter-title" style="margin-bottom:0">Tour ${tourActuel} / ${toursTotal}</div>
+      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;">${dotsHTML}</div>
+    </div>
+    <div class="voter-subtitle">Sélectionnez ${pluriel} pour ce tour. Vous aurez ${toursTotal - tourActuel} tour(s) de plus après.</div>
+    <div class="vote-counter">
+      <span class="vote-counter-label">Sélectionnés</span>
+      <span class="vote-counter-val" id="vote-counter-val">0 / ${maxChoix}</span>
+    </div>
+    ${candidatesHTML}
+    <div style="margin-top:20px;">
+      <button class="btn btn-primary" style="width:100%" id="submit-vote-btn" onclick="submitTour()" disabled>
+        ${tourActuel < toursTotal ? `Valider le tour ${tourActuel} →` : 'Confirmer le dernier vote'}
+      </button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">
+      ${tourActuel < toursTotal
+        ? `Ce lien restera actif pour vos ${toursTotal - tourActuel} prochain(s) tour(s).`
+        : 'Ce lien sera désactivé après ce dernier vote.'}
+    </div>
+  `;
+}
+
+function toggleCandidate(id, el) {
+  const sel = window._selectedIds, max = window._maxChoix;
+  if (sel.has(id)) { sel.delete(id); el.classList.remove('selected'); }
+  else { if (sel.size >= max) return; sel.add(id); el.classList.add('selected'); }
+
+  const counterEl = document.getElementById('vote-counter-val');
+  counterEl.textContent = `${sel.size} / ${max}`;
+  counterEl.className = 'vote-counter-val ' + (sel.size === max ? 'full' : sel.size > 0 ? 'ok' : '');
+
+  document.querySelectorAll('.candidate-option').forEach(o => {
+    const oid = o.id.replace('opt-', '');
+    o.classList.toggle('maxed', sel.size >= max && !sel.has(oid));
+  });
+  document.getElementById('submit-vote-btn').disabled = sel.size === 0;
+}
+
+async function submitTour() {
+  const selectedIds = [...window._selectedIds];
+  if (!selectedIds.length) return;
+  const btn = document.getElementById('submit-vote-btn');
+  btn.disabled = true;
+
+  const { data, error } = await sb.rpc('submit_tour', { p_token: window._token, p_candidate_ids: selectedIds });
+  if (error) {
+    toast(error.message || 'Vote impossible', 'error');
+    // état serveur possiblement modifié : on resynchronise
+    openVoterPage(window._token);
+    return;
+  }
+
+  selectedIds.forEach(id => window._summary[id] = (window._summary[id] || 0) + 1);
+  const tourFait = window._tourActuel;
+  const el = document.getElementById('voter-content');
+
+  if (!data.used) {
+    window._tourActuel = data.tours_done + 1;
+    const names = selectedIds.map(id => {
+      const c = state.candidates.find(c => c.id === id);
+      return c ? `<strong style="color:var(--green)">${esc(c.name)}</strong>` : '';
+    }).join(', ');
+    el.innerHTML = `
+      <div style="text-align:center;padding:20px 0 28px;">
+        <div style="font-size:32px;margin-bottom:10px;">✓</div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:16px;margin-bottom:6px;">Tour ${tourFait} enregistré</div>
+        <div style="font-size:12px;color:var(--muted);">Votes pour : ${names}</div>
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary btn-sm" onclick="renderTourVote()">Passer au tour ${tourFait + 1} →</button>
+        </div>
+      </div>`;
+  } else {
+    const summaryHTML = state.candidates
+      .filter(c => window._summary[c.id])
+      .sort((a, b) => window._summary[b.id] - window._summary[a.id])
+      .map(c => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border-radius:6px;margin-bottom:6px;">
+          <span style="font-family:var(--font-head);font-weight:600;font-size:14px;">${esc(c.name)}</span>
+          <span class="badge badge-accent">${window._summary[c.id]} vote(s)</span>
+        </div>`).join('');
+    el.innerHTML = `
+      <div class="success-state">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Tous vos votes sont enregistrés</div>
+        <div class="success-text" style="margin-bottom:16px;">${window._toursTotal} tour(s) complétés — récapitulatif :</div>
+        ${summaryHTML}
+        <div style="font-size:11px;color:var(--muted);margin-top:16px;">Ce lien est maintenant désactivé.</div>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════
+//  PAGE ROUTING
+// ═══════════════════════════════
+async function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('nav-' + p).classList.add('active');
+  if (await loadAdminData()) {
+    renderAdmin();
+    if (p === 'live') renderLive();
+  }
+}
+
+// ═══════════════════════════════
+//  ADMIN RENDER
+// ═══════════════════════════════
+function renderAdmin() {
+  renderAdminStats();
+  renderCandidatesTable();
+  renderVotersTable();
+  renderLinksTable();
+  renderAdminResults();
+  renderToggles();
+}
+
+function pointsOf(id) {
+  const r = state.results.find(x => x.candidate_id === id);
+  return r ? r.points : 0;
+}
+
+function renderAdminStats() {
+  const totalWeighted = state.results.reduce((a, r) => a + r.points, 0);
+  const activeLinks = state.links.filter(l => !l.used).length;
+  const usedLinks = state.links.filter(l => l.used).length;
+  document.getElementById('admin-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Votes exprimés</div><div class="stat-value accent">${state.voteCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Points totaux</div><div class="stat-value">${totalWeighted}</div></div>
+    <div class="stat-card"><div class="stat-label">Liens actifs</div><div class="stat-value green">${activeLinks}</div></div>
+    <div class="stat-card"><div class="stat-label">Liens utilisés</div><div class="stat-value">${usedLinks}</div></div>
+  `;
+}
+
+function renderToggles() {
+  const s = state.settings;
+  document.getElementById('toggle-election').className = 'toggle' + (s.election_open ? ' on' : '');
+  document.getElementById('toggle-live').className = 'toggle' + (s.live_enabled ? ' on' : '');
+  document.getElementById('election-status-badge').innerHTML = s.election_open
+    ? '<span class="badge badge-green">Ouverte</span>'
+    : '<span class="badge badge-red">Fermée</span>';
+  document.getElementById('max-votes-display').textContent = s.max_votes;
+  const sel = document.getElementById('max-votes-select');
+  if (sel) sel.value = String(s.max_votes);
+}
+
+async function updateSettings(patch, msg) {
+  const res = await sb.from('settings').update(patch).eq('id', 1);
+  if (ok(res, msg)) { Object.assign(state.settings, patch); renderToggles(); }
+}
+function updateMaxVotes(val) { updateSettings({ max_votes: parseInt(val) }, `Maximum fixé à ${val} choix par votant`); }
+function toggleElection() {
+  const v = !state.settings.election_open;
+  updateSettings({ election_open: v }, v ? 'Élection ouverte' : 'Élection fermée');
+}
+function toggleLive() {
+  const v = !state.settings.live_enabled;
+  updateSettings({ live_enabled: v }, v ? 'Page live activée' : 'Page live désactivée');
+}
+
+function renderCandidatesTable() {
+  const tbody = document.getElementById('candidates-tbody');
+  if (!state.candidates.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px;">Aucun candidat</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.candidates.map(c => `
+    <tr class="row-edit" title="Cliquer pour modifier" onclick="if(!event.target.closest('button'))openCandidateModal('${c.id}')">
+      <td data-label="Candidat" style="font-weight:500">${esc(c.name)}</td>
+      <td data-label="Description" style="color:var(--muted)">${esc(candDesc(c) || '—')}</td>
+      <td data-label="Votes pondérés"><span class="badge badge-accent">${pointsOf(c.id)} pts</span></td>
+      <td class="td-actions"><button class="btn btn-danger btn-sm" onclick="confirmDeleteCandidate('${c.id}')">Suppr.</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderLinksTable() {
+  const tbody = document.getElementById('links-tbody');
+  if (!state.links.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;">Aucun lien généré</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.links.map(l => {
+    const statusBadge = l.used
+      ? '<span class="badge badge-red">Utilisé</span>'
+      : `<span class="badge badge-green">Actif${l.tours_done ? ` (${l.tours_done}/${l.multiplier})` : ''}</span>`;
+    const url = getVoterUrl(l.token);
+    return `
+      <tr class="row-edit" title="Cliquer pour modifier" onclick="if(!event.target.closest('button'))openLinkModal('${l.id}')">
+        <td data-label="Label" style="font-size:12px;color:var(--muted)">${esc(l.label || '—')}</td>
+        <td data-label="Tours"><span class="badge badge-amber">${l.multiplier} tour${l.multiplier > 1 ? 's' : ''}</span></td>
+        <td data-label="Statut">${statusBadge}</td>
+        <td class="td-link">
+          <div class="link-box">
+            <code title="${url}">${url.length > 45 ? url.slice(0, 45) + '…' : url}</code>
+            <button class="copy-btn" onclick="copy('${url}')" title="Copier">⧉</button>
+          </div>
+        </td>
+        <td class="td-actions"><button class="btn btn-danger btn-sm" onclick="confirmDeleteLink('${l.id}')">Suppr.</button></td>
+      </tr>`;
+  }).join('');
+}
+
+function resultBars(sorted, total) {
+  return sorted.map((c, i) => {
+    const pts = c.points;
+    const pct = total > 0 ? Math.round(pts / total * 100) : 0;
+    return `
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span class="progress-name">${esc(c.name)}</span>
+          <span class="progress-score">${pts} pts — ${pct}%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill bar-${i % 5}" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderAdminResults() {
+  const el = document.getElementById('admin-results');
+  if (!state.results.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px;">Aucun candidat</div>';
+    return;
+  }
+  const total = state.results.reduce((a, r) => a + r.points, 0);
+  el.innerHTML = resultBars(state.results, total);
+}
+
+// ═══════════════════════════════
+//  LIVE RENDER
+// ═══════════════════════════════
+function renderLive() {
+  if (!state.settings.live_enabled) {
+    document.getElementById('live-stats').innerHTML = '';
+    document.getElementById('live-results').innerHTML = `
+      <div style="text-align:center;padding:48px 0;color:var(--muted);">
+        <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+        <div style="font-size:15px;">La page live n'est pas activée.</div>
+        <div style="font-size:12px;margin-top:8px;">Activez-la depuis le panneau admin.</div>
+      </div>`;
+    return;
+  }
+  const total = state.results.reduce((a, r) => a + r.points, 0);
+  document.getElementById('live-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Votes exprimés</div><div class="stat-value accent">${state.voteCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Points totaux</div><div class="stat-value">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Candidats</div><div class="stat-value">${state.candidates.length}</div></div>
+  `;
+  document.getElementById('live-results').innerHTML = resultBars(state.results, total);
+}
+
+// ═══════════════════════════════
+//  CANDIDATES
+// ═══════════════════════════════
+function openCandidateModal(id) {
+  const c = id ? state.candidates.find(x => x.id === id) : null;
+  window._editCandId = c ? c.id : null;
+  document.getElementById('cand-modal-title').textContent = c ? 'Modifier le candidat' : 'Ajouter un candidat';
+  document.getElementById('cand-save-btn').textContent = c ? 'Enregistrer' : 'Ajouter';
+  document.getElementById('cand-name').value = c ? c.name : '';
+  document.getElementById('cand-desc').value = c ? (c.poste || '') : '';
+  document.getElementById('cand-genre').value = c ? (c.genre || '') : '';
+  document.getElementById('cand-medecin').value = c && c.medecin ? 'O' : 'N';
+  openModal('candidate-modal');
+}
+
+async function saveCandidate() {
+  const name = document.getElementById('cand-name').value.trim();
+  if (!name) { toast('Nom requis', 'error'); return; }
+  const row = {
+    name,
+    poste: document.getElementById('cand-desc').value.trim() || null,
+    genre: document.getElementById('cand-genre').value || null,
+    medecin: document.getElementById('cand-medecin').value === 'O'
+  };
+  const id = window._editCandId;
+  const res = id ? await sb.from('candidates').update(row).eq('id', id)
+                 : await sb.from('candidates').insert(row);
+  if (ok(res, id ? 'Candidat modifié' : 'Candidat ajouté')) {
+    closeModal('candidate-modal');
+    refresh();
+  }
+}
+
+function confirmDeleteCandidate(id) {
+  const c = state.candidates.find(x => x.id === id);
+  document.getElementById('confirm-title').textContent = 'Supprimer le candidat ?';
+  document.getElementById('confirm-text').textContent = `"${c.name}" sera définitivement supprimé ainsi que ses votes associés.`;
+  document.getElementById('confirm-ok-btn').onclick = async () => { closeModal('confirm-modal'); await deleteCandidate(id); };
+  openModal('confirm-modal');
+}
+
+async function deleteCandidate(id) {
+  if (ok(await sb.from('candidates').delete().eq('id', id), 'Candidat supprimé')) refresh();
+}
+
+// ═══════════════════════════════
+//  LINKS
+// ═══════════════════════════════
+function openLinkModal(id) {
+  const l = id ? state.links.find(x => x.id === id) : null;
+  window._editLinkId = l ? l.id : null;
+  document.getElementById('link-modal-title').textContent = l ? 'Modifier le lien de vote' : 'Générer un lien de vote';
+  document.getElementById('link-save-btn').textContent = l ? 'Enregistrer' : 'Générer';
+  document.getElementById('link-label').value = l ? (l.label || '') : '';
+  const sel = document.getElementById('link-multiplier');
+  const custom = document.getElementById('custom-multiplier-input');
+  custom.value = '';
+  if (l) {
+    const preset = [...sel.options].some(o => o.value === String(l.multiplier));
+    sel.value = preset ? String(l.multiplier) : 'custom';
+    if (!preset) custom.value = l.multiplier;
+  } else {
+    sel.value = '5';
+  }
+  document.getElementById('custom-multiplier-wrap').style.display = sel.value === 'custom' ? 'block' : 'none';
+  if (sel.value === 'custom') validateCustomMultiplier(custom);
+  openModal('link-modal');
+}
+
+function onMultiplierChange(val) {
+  const wrap = document.getElementById('custom-multiplier-wrap');
+  wrap.style.display = val === 'custom' ? 'block' : 'none';
+  if (val === 'custom') document.getElementById('custom-multiplier-input').focus();
+}
+
+function validateCustomMultiplier(input) {
+  const hint = document.getElementById('custom-multiplier-hint');
+  const v = parseInt(input.value);
+  if (!input.value || isNaN(v) || v < 1) {
+    hint.textContent = 'Entrez un entier positif.';
+    hint.style.color = 'var(--muted)';
+  } else {
+    hint.textContent = `${v} tours — le votant pourra voter ${v} fois.`;
+    hint.style.color = 'var(--green)';
+  }
+}
+
+async function saveLink() {
+  const label = document.getElementById('link-label').value.trim();
+  const selectVal = document.getElementById('link-multiplier').value;
+  let multiplier;
+  if (selectVal === 'custom') {
+    const raw = parseInt(document.getElementById('custom-multiplier-input').value);
+    if (isNaN(raw) || raw < 1) {
+      toast('Entrez un nombre de tours valide (≥ 1)', 'error');
+      document.getElementById('custom-multiplier-input').focus();
+      return;
+    }
+    multiplier = raw;
+  } else {
+    multiplier = parseInt(selectVal);
+  }
+  const id = window._editLinkId;
+  let res;
+  if (id) {
+    const l = state.links.find(x => x.id === id);
+    if (multiplier < l.tours_done) {
+      toast(`Impossible : ${l.tours_done} tour(s) déjà effectué(s)`, 'error');
+      return;
+    }
+    const used = l.tours_done >= multiplier;
+    res = await sb.from('links').update({ label, multiplier, used, used_at: used ? (l.used_at || new Date().toISOString()) : null }).eq('id', id);
+  } else {
+    res = await sb.from('links').insert({ label, multiplier });
+  }
+  if (ok(res, id ? 'Lien modifié' : `Lien ${multiplier} tour(s) généré !`)) {
+    closeModal('link-modal');
+    refresh();
+  }
+}
+
+function confirmDeleteLink(id) {
+  document.getElementById('confirm-title').textContent = 'Supprimer ce lien ?';
+  document.getElementById('confirm-text').textContent = 'Ce lien sera définitivement supprimé.';
+  document.getElementById('confirm-ok-btn').onclick = async () => { closeModal('confirm-modal'); await deleteLink(id); };
+  openModal('confirm-modal');
+}
+
+async function deleteLink(id) {
+  if (ok(await sb.from('links').delete().eq('id', id), 'Lien supprimé')) refresh();
+}
+
+// ═══════════════════════════════
+//  VOTERS (votants / clubs)
+// ═══════════════════════════════
+function renderVotersTable() {
+  const tbody = document.getElementById('voters-tbody');
+  const voters = state.voters;
+  const total = voters.reduce((a, v) => a + v.voices, 0);
+  document.getElementById('voters-total').textContent = `${voters.length} votants · ${total} voix`;
+  if (!voters.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px;">Aucun votant</td></tr>';
+    return;
+  }
+  tbody.innerHTML = voters.map(v => {
+    const link = state.links.find(l => l.voter_id === v.id);
+    const badge = !link ? '<span class="badge badge-gray">Sans lien</span>'
+      : link.used ? '<span class="badge badge-red">A voté</span>' : '<span class="badge badge-green">Lien actif</span>';
+    return `<tr class="row-edit" title="Cliquer pour modifier" onclick="if(!event.target.closest('button'))openVoterModal('${v.id}')">
+      <td data-label="Club" style="font-weight:500">${esc(v.club)}</td>
+      <td data-label="Voix"><span class="badge badge-amber">${v.voices} voix</span></td>
+      <td data-label="Délégué">${esc(v.delegate || '—')}</td>
+      <td data-label="Email" style="color:var(--muted);font-size:12px">${esc(v.email || '—')}</td>
+      <td data-label="Statut">${badge}</td>
+      <td class="td-actions"><button class="btn btn-danger btn-sm" onclick="confirmDeleteVoter('${v.id}')">Suppr.</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function linkRowFor(v) {
+  return { label: v.club + (v.delegate ? ' — ' + v.delegate : ''), multiplier: v.voices, voter_id: v.id };
+}
+
+function openVoterModal(id) {
+  const v = id ? state.voters.find(x => x.id === id) : null;
+  window._editVoterId = v ? v.id : null;
+  document.getElementById('voter-modal-title').textContent = v ? 'Modifier le votant' : 'Ajouter un votant';
+  document.getElementById('voter-save-btn').textContent = v ? 'Enregistrer' : 'Ajouter';
+  document.getElementById('voter-club').value = v ? v.club : '';
+  document.getElementById('voter-voices').value = v ? v.voices : '1';
+  document.getElementById('voter-delegate').value = v ? (v.delegate || '') : '';
+  document.getElementById('voter-email').value = v ? (v.email || '') : '';
+  openModal('voter-modal');
+}
+
+async function saveVoter() {
+  const club = document.getElementById('voter-club').value.trim();
+  const voices = parseInt(document.getElementById('voter-voices').value);
+  if (!club) { toast('Nom du club requis', 'error'); return; }
+  if (isNaN(voices) || voices < 1) { toast('Nombre de voix invalide (≥ 1)', 'error'); return; }
+  const row = {
+    club, voices,
+    delegate: document.getElementById('voter-delegate').value.trim() || null,
+    email: document.getElementById('voter-email').value.trim() || null
+  };
+
+  const editId = window._editVoterId;
+  if (editId) {
+    const link = state.links.find(l => l.voter_id === editId);
+    if (link && voices < link.tours_done) {
+      toast(`Impossible : ${link.tours_done} tour(s) déjà effectué(s) avec ce lien`, 'error');
+      return;
+    }
+    if (!ok(await sb.from('voters').update(row).eq('id', editId))) return;
+    if (link) {   // le lien suit les infos du votant
+      const used = link.tours_done >= voices;
+      const lr = linkRowFor({ id: editId, ...row });
+      if (!ok(await sb.from('links').update({ label: lr.label, multiplier: voices, used,
+            used_at: used ? (link.used_at || new Date().toISOString()) : null }).eq('id', link.id))) return;
+    }
+    toast('Votant modifié', 'success');
+    closeModal('voter-modal');
+    refresh();
+    return;
+  }
+
+  const res = await sb.from('voters').insert(row).select().single();
+  if (!ok(res)) return;
+  if (ok(await sb.from('links').insert(linkRowFor(res.data)), 'Votant ajouté (lien généré)')) {
+    closeModal('voter-modal');
+    refresh();
+  }
+}
+
+function confirmDeleteVoter(id) {
+  const v = state.voters.find(x => x.id === id);
+  document.getElementById('confirm-title').textContent = 'Supprimer le votant ?';
+  document.getElementById('confirm-text').textContent = `"${v.club}" et son lien de vote seront supprimés (les votes déjà exprimés sont conservés).`;
+  document.getElementById('confirm-ok-btn').onclick = async () => { closeModal('confirm-modal'); await deleteVoter(id); };
+  openModal('confirm-modal');
+}
+
+async function deleteVoter(id) {
+  if (ok(await sb.from('voters').delete().eq('id', id), 'Votant supprimé')) refresh();
+}
+
+async function generateMissingVoterLinks() {
+  const missing = state.voters.filter(v => !state.links.some(l => l.voter_id === v.id));
+  if (!missing.length) { toast('Tous les votants ont déjà un lien', 'success'); return; }
+  if (ok(await sb.from('links').insert(missing.map(linkRowFor)), `${missing.length} lien(s) généré(s)`)) refresh();
+}
+
+// ═══════════════════════════════
+//  IMPORT EXCEL → Supabase
+// ═══════════════════════════════
+function importExcel(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { toast('Librairie Excel indisponible (connexion ?)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const rowsOf = name => {
+        const ws = wb.Sheets[name] || wb.Sheets[wb.SheetNames.find(n => n.toLowerCase().includes(name.toLowerCase().slice(0, 5)))];
+        return ws ? XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }).slice(1) : [];
+      };
+      const voters = rowsOf('Clubs votants')
+        .filter(r => r[0] && String(r[0]).toUpperCase() !== 'TOTAL' && typeof r[1] === 'number')
+        .map(r => ({ club: String(r[0]).trim(), voices: Math.max(1, parseInt(r[1]) || 1),
+                     delegate: String(r[2] || '').trim() || null, email: String(r[3] || '').trim() || null }));
+      const cands = rowsOf('Candidats')
+        .filter(r => r[0] && r[1] && /^[HF]$/i.test(String(r[1]).trim()))
+        .map(r => ({ name: String(r[0]).trim(), genre: String(r[1]).trim().toUpperCase(),
+                     poste: String(r[2] || '').trim() || null, medecin: String(r[3]).trim().toUpperCase() === 'O' }));
+      if (!voters.length && !cands.length) { toast('Aucune donnée reconnue dans le fichier', 'error'); return; }
+      if (!confirm(`Import : ${voters.length} votants, ${cands.length} candidats.\nCela remplace les données existantes et efface tous les votes. Continuer ?`)) return;
+
+      // Votes, puis candidats / votants (+ liens via cascade) sont remplacés
+      if (!ok(await sb.from('votes').delete().gte('id', 0))) return;
+      if (voters.length) {
+        if (!ok(await sb.from('links').delete().not('id', 'is', null))) return;
+        if (!ok(await sb.from('voters').delete().not('id', 'is', null))) return;
+        const ins = await sb.from('voters').insert(voters).select();
+        if (!ok(ins)) return;
+        if (!ok(await sb.from('links').insert(ins.data.map(linkRowFor)))) return;
+      }
+      if (cands.length) {
+        if (!ok(await sb.from('candidates').delete().not('id', 'is', null))) return;
+        if (!ok(await sb.from('candidates').insert(cands))) return;
+      }
+      toast(`Import : ${voters.length} votants, ${cands.length} candidats`, 'success');
+      refresh();
+    } catch (err) { console.error(err); toast('Fichier Excel illisible', 'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════
+//  MODALS
+// ═══════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ═══════════════════════════════
+//  INIT
+// ═══════════════════════════════
+async function init() {
+  const voteToken = new URLSearchParams(location.search).get('vote');
+  if (voteToken) { openVoterPage(voteToken); return; }
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { enterAdmin(); return; }
+
+  document.getElementById('admin-gate').style.display = 'flex';
+  setGateMode('admin');
+}
+
+// Filet de sécurité si le temps réel est indisponible
+setInterval(() => { if (currentMode === 'admin') refresh(); }, 15000);
+
+init();
+</script>
+</body>
+</html>
