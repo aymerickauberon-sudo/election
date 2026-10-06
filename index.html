@@ -127,6 +127,10 @@
     cursor: pointer;
     transition: all 0.15s;
     letter-spacing: 0.3px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
@@ -135,6 +139,9 @@
   .btn-danger { background: transparent; border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
   .btn-danger:hover { background: rgba(248,113,113,0.1); }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-xs { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
+  .btn-email { background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.25); color: var(--accent); }
+  .btn-email:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
   /* BADGES */
@@ -469,6 +476,7 @@
     input, select, textarea { font-size: 16px; padding: 12px 14px; }
     .btn { min-height: 44px; padding: 10px 16px; }
     .btn-sm { min-height: 40px; }
+    .btn-xs { min-height: 32px; padding: 4px 8px; font-size: 11px; }
     .toggle-row { gap: 12px; }
     #max-votes-select { font-size: 16px !important; min-height: 40px; }
 
@@ -518,6 +526,7 @@
     <div id="gate-tabs" style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:4px;margin-bottom:20px;">
       <button class="btn" style="flex:1;padding:7px;font-size:12px;" onclick="setGateMode('admin')" id="gate-admin-tab">Admin</button>
       <button class="btn" style="flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);" onclick="setGateMode('voter')" id="gate-voter-tab">Voter</button>
+      <button class="btn" style="flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);" onclick="openLivePage()" id="gate-live-tab">Direct (Live)</button>
     </div>
     <div id="gate-admin">
       <label>Email admin</label>
@@ -561,7 +570,10 @@
     <div class="card">
       <div class="card-header">
         <h2 style="margin:0">Configuration</h2>
-        <div id="election-status-badge"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div id="election-status-badge"></div>
+          <button class="btn btn-sm" onclick="openRound2Modal()" style="background:rgba(217,119,6,0.12);color:var(--amber);border:1px solid rgba(217,119,6,0.3);font-weight:600;cursor:pointer;">🔄 Passer au second tour</button>
+        </div>
       </div>
       <div class="toggle-row">
         <div>
@@ -618,18 +630,40 @@
           <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('excel-input').click()">Importer Excel</button>
           <button class="btn btn-ghost btn-sm" onclick="generateMissingVoterLinks()">Générer liens manquants</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyAllVoterLinks()">📋 Copier tous les liens</button>
           <button class="btn btn-primary btn-sm" onclick="openVoterModal()">+ Ajouter</button>
         </div>
       </div>
       <table id="voters-table">
-        <thead><tr><th>Club</th><th>Voix</th><th>Délégué</th><th>Email</th><th>Statut</th><th></th></tr></thead>
+        <thead><tr><th>Club</th><th>Voix</th><th>Délégué</th><th>Email</th><th>Statut</th><th>Envoi &amp; Lien</th><th></th></tr></thead>
         <tbody id="voters-tbody"></tbody>
       </table>
     </div>
+    <!-- ARCHIVE DU 1ER TOUR (GAGNANTS) -->
+    <div class="card" id="round1-card" style="display:none;border-color:rgba(217,119,6,0.3);background:rgba(217,119,6,0.02);">
+      <div class="card-header">
+        <div>
+          <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
+            <span>🏆 Gagnants &amp; Résultats du 1er tour</span>
+            <span class="badge badge-amber" id="round1-date">Archivé</span>
+          </h2>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Historique officiel du premier tour de scrutin</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="exportRound1CSV()">Exporter CSV</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmClearRound1()" title="Supprimer l'archive du 1er tour">Effacer</button>
+        </div>
+      </div>
+      <div id="round1-content"></div>
+    </div>
+
     <div class="card">
       <div class="card-header">
-        <h2 style="margin:0">Résultats</h2>
-        <span class="badge badge-gray">anonymisé</span>
+        <h2 style="margin:0" id="results-card-title">Résultats</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="badge badge-gray">anonymisé</span>
+          <button class="btn btn-sm" onclick="openRound2Modal()" style="background:var(--amber);color:#fff;border:none;cursor:pointer;">🔄 Passer au second tour</button>
+        </div>
       </div>
       <div id="admin-results"></div>
     </div>
@@ -655,6 +689,18 @@
     </div>
     <div class="stats-grid" id="live-stats"></div>
     <div id="live-results"></div>
+
+    <!-- ARCHIVE 1ER TOUR EN LIVE -->
+    <div class="card" id="live-round1-card" style="display:none;border-color:rgba(217,119,6,0.3);margin-top:24px;">
+      <div class="card-header">
+        <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
+          <span>🏆 Résultats officiels du 1er tour</span>
+          <span class="badge badge-amber">Gagnants T1</span>
+        </h2>
+      </div>
+      <div id="live-round1-content"></div>
+    </div>
+
     <div style="font-size:11px;color:var(--muted);margin-top:24px;text-align:center;">Actualisation automatique toutes les 5 secondes</div>
   </div>
 
@@ -745,6 +791,44 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Annuler</button>
       <button class="btn btn-danger" id="confirm-ok-btn">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Passer au second tour -->
+<div class="modal-overlay" id="round2-modal">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+      <span>🔄</span> Passer au second tour
+    </div>
+    <div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.3);border-radius:8px;padding:12px;font-size:12px;line-height:1.5;margin-bottom:16px;">
+      <strong style="color:var(--amber);">Cette opération automatique va :</strong><br>
+      • <span style="font-weight:600;">Archiver</span> l'ensemble des résultats et gagnants du 1er tour.<br>
+      • <span style="font-weight:600;">Réinitialiser les votes</span> pour démarrer le 2nd tour à 0.<br>
+      • <span style="font-weight:600;">Conserver les votants</span> et générer de <strong>nouveaux liens de vote</strong> pour chacun.<br>
+      • <span style="font-weight:600;">Conserver uniquement</span> les candidats cochés ci-dessous pour le tour 2.
+    </div>
+
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;" id="round2-votes-info"></div>
+
+    <label style="margin-bottom:4px;">Candidats qualifiés pour le second tour :</label>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button class="btn btn-ghost btn-xs" type="button" onclick="selectAllRound2Cands(true)">Tout cocher</button>
+      <button class="btn btn-ghost btn-xs" type="button" onclick="selectAllRound2Cands(false)">Tout décocher</button>
+    </div>
+    <div id="round2-cands-container" style="max-height:220px;overflow-y:auto;margin-bottom:14px;padding-right:4px;"></div>
+
+    <label>Nombre de choix maximum par votant pour le tour 2 :</label>
+    <input type="number" id="round2-max-votes" min="1" max="50" value="1" style="margin-bottom:14px;">
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <input type="checkbox" id="round2-open-now" style="width:18px;height:18px;margin:0;">
+      <label for="round2-open-now" style="margin:0;cursor:pointer;text-transform:none;font-size:13px;">Ouvrir immédiatement l'élection au vote pour le tour 2</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('round2-modal')">Annuler</button>
+      <button class="btn btn-primary" id="round2-confirm-btn" onclick="launchRound2()" style="background:var(--amber);color:#fff;">Confirmer &amp; Lancer le tour 2</button>
     </div>
   </div>
 </div>
@@ -857,6 +941,8 @@ function setGateMode(m) {
   document.getElementById('gate-voter').style.display = m === 'voter' ? '' : 'none';
   document.getElementById('gate-admin-tab').style.cssText = m === 'admin' ? 'flex:1;padding:7px;font-size:12px;background:var(--accent);color:#fff;' : 'flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);';
   document.getElementById('gate-voter-tab').style.cssText = m === 'voter' ? 'flex:1;padding:7px;font-size:12px;background:var(--accent);color:#fff;' : 'flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);';
+  const liveTab = document.getElementById('gate-live-tab');
+  if (liveTab) liveTab.style.cssText = 'flex:1;padding:7px;font-size:12px;background:transparent;color:var(--muted);';
 }
 
 async function checkAdminPass() {
@@ -1007,9 +1093,13 @@ async function submitTour() {
   if (!selectedIds.length) return;
   const btn = document.getElementById('submit-vote-btn');
   btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Enregistrement en cours…';
 
   const { data, error } = await sb.rpc('submit_tour', { p_token: window._token, p_candidate_ids: selectedIds });
   if (error) {
+    btn.disabled = false;
+    btn.textContent = originalText;
     toast(error.message || 'Vote impossible', 'error');
     // état serveur possiblement modifié : on resynchronise
     openVoterPage(window._token);
@@ -1058,14 +1148,44 @@ async function submitTour() {
 // ═══════════════════════════════
 //  PAGE ROUTING
 // ═══════════════════════════════
+async function loadLiveData() {
+  const [s, c, r] = await Promise.all([
+    sb.from('settings').select('*').eq('id', 1).single(),
+    sb.from('candidates').select('*').order('position'),
+    sb.rpc('get_results')
+  ]);
+  if (s.data) state.settings = s.data;
+  if (c.data) state.candidates = c.data;
+  if (r.data) state.results = r.data.map(x => ({ ...x, points: Number(x.points) }));
+  return !s.error && !c.error && !r.error;
+}
+
+async function openLivePage() {
+  document.getElementById('admin-gate').style.display = 'none';
+  document.getElementById('voter-page').style.display = 'none';
+  document.getElementById('app-pages').style.display = 'block';
+  document.getElementById('main-nav').style.display = 'flex';
+  document.getElementById('nav-admin').style.display = currentMode === 'admin' ? '' : 'none';
+  const decoBtn = document.querySelector('#main-nav .btn-ghost');
+  if (decoBtn) decoBtn.style.display = currentMode === 'admin' ? '' : 'none';
+  currentMode = currentMode === 'admin' ? 'admin' : 'live';
+  showPage('live');
+}
+
 async function showPage(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + p).classList.add('active');
   document.getElementById('nav-' + p).classList.add('active');
-  if (await loadAdminData()) {
-    renderAdmin();
-    if (p === 'live') renderLive();
+  if (p === 'admin') {
+    if (await loadAdminData()) renderAdmin();
+  } else if (p === 'live') {
+    if (currentMode === 'admin') {
+      await loadAdminData();
+    } else {
+      await loadLiveData();
+    }
+    renderLive();
   }
 }
 
@@ -1079,6 +1199,7 @@ function renderAdmin() {
   renderLinksTable();
   renderAdminResults();
   renderToggles();
+  renderRound1();
 }
 
 function pointsOf(id) {
@@ -1107,7 +1228,15 @@ function renderToggles() {
     : '<span class="badge badge-red">Fermée</span>';
   document.getElementById('max-votes-display').textContent = s.max_votes;
   const sel = document.getElementById('max-votes-select');
-  if (sel) sel.value = String(s.max_votes);
+  if (sel) {
+    if (![...sel.options].some(o => o.value === String(s.max_votes))) {
+      const opt = document.createElement('option');
+      opt.value = String(s.max_votes);
+      opt.textContent = String(s.max_votes);
+      sel.appendChild(opt);
+    }
+    sel.value = String(s.max_votes);
+  }
 }
 
 async function updateSettings(patch, msg) {
@@ -1215,6 +1344,7 @@ function renderLive() {
     <div class="stat-card"><div class="stat-label">Candidats</div><div class="stat-value">${state.candidates.length}</div></div>
   `;
   document.getElementById('live-results').innerHTML = resultBars(state.results, total);
+  renderRound1();
 }
 
 // ═══════════════════════════════
@@ -1358,19 +1488,38 @@ function renderVotersTable() {
   const total = voters.reduce((a, v) => a + v.voices, 0);
   document.getElementById('voters-total').textContent = `${voters.length} votants · ${total} voix`;
   if (!voters.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px;">Aucun votant</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">Aucun votant</td></tr>';
     return;
   }
   tbody.innerHTML = voters.map(v => {
     const link = state.links.find(l => l.voter_id === v.id);
     const badge = !link ? '<span class="badge badge-gray">Sans lien</span>'
       : link.used ? '<span class="badge badge-red">A voté</span>' : '<span class="badge badge-green">Lien actif</span>';
-    return `<tr class="row-edit" title="Cliquer pour modifier" onclick="if(!event.target.closest('button'))openVoterModal('${v.id}')">
+
+    let actionBtns = '<span style="color:var(--muted);font-size:12px;">—</span>';
+    if (link) {
+      const emailData = getVoterEmailData(v.id);
+      const to = v.email ? encodeURIComponent(v.email) : '';
+      const sub = encodeURIComponent(emailData.subject);
+      const body = encodeURIComponent(emailData.body);
+      const mailtoUrl = `mailto:${to}?subject=${sub}&body=${body}`;
+      const voteUrl = emailData.voteUrl;
+
+      actionBtns = `
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+          <a class="btn btn-email btn-xs" href="${mailtoUrl}" onclick="onMailtoClick('${v.id}', event);" title="Envoyer par email à ${esc(v.email || v.club)}">✉ Email</a>
+          <button class="btn btn-ghost btn-xs" onclick="copyVoterMessage('${v.id}', event)" title="Copier le message complet d'invitation">📋 Message</button>
+          <button class="btn btn-ghost btn-xs" onclick="copyVoterLink('${v.id}', event)" title="Copier uniquement l'URL">🔗 Lien</button>
+        </div>`;
+    }
+
+    return `<tr class="row-edit" title="Cliquer pour modifier" onclick="if(!event.target.closest('button') && !event.target.closest('a'))openVoterModal('${v.id}')">
       <td data-label="Club" style="font-weight:500">${esc(v.club)}</td>
       <td data-label="Voix"><span class="badge badge-amber">${v.voices} voix</span></td>
       <td data-label="Délégué">${esc(v.delegate || '—')}</td>
       <td data-label="Email" style="color:var(--muted);font-size:12px">${esc(v.email || '—')}</td>
       <td data-label="Statut">${badge}</td>
+      <td data-label="Envoi">${actionBtns}</td>
       <td class="td-actions"><button class="btn btn-danger btn-sm" onclick="confirmDeleteVoter('${v.id}')">Suppr.</button></td>
     </tr>`;
   }).join('');
@@ -1449,6 +1598,274 @@ async function generateMissingVoterLinks() {
   if (ok(await sb.from('links').insert(missing.map(linkRowFor)), `${missing.length} lien(s) généré(s)`)) refresh();
 }
 
+function getVoterEmailData(voterId) {
+  const v = state.voters.find(x => x.id === voterId);
+  if (!v) return null;
+  const link = state.links.find(l => l.voter_id === v.id);
+  const voteUrl = link ? getVoterUrl(link.token) : '';
+  const voicesText = v.voices > 1 ? `${v.voices} voix` : '1 voix';
+  const delegateName = v.delegate ? v.delegate : 'Madame, Monsieur';
+  const subject = `Élection — Lien de vote : ${v.club}`;
+  const body = `Bonjour ${delegateName},\n\n`
+    + `Voici votre lien de vote officiel pour le scrutin pour "${v.club}".\n`
+    + `Pondération : ${voicesText}.\n\n`
+    + `Accéder au vote sécurisé :\n${voteUrl}\n\n`
+    + `Rappel :\n`
+    + `• Le vote est strictement confidentiel et anonyme.\n`
+    + `• Ce lien est unique et personnel. Il sera désactivé après confirmation de votre vote.\n\n`
+    + `Bien cordialement,\nL'organisation`;
+  return { voter: v, link, voteUrl, subject, body };
+}
+
+function onMailtoClick(voterId, event) {
+  if (event) event.stopPropagation();
+  const data = getVoterEmailData(voterId);
+  if (data && data.voteUrl) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(data.voteUrl).catch(() => {});
+    }
+    toast(`Lien copié & messagerie ouverte (${data.voter.club})`, 'success');
+  }
+}
+
+function sendVoterEmail(voterId, event) {
+  if (event) event.stopPropagation();
+  const data = getVoterEmailData(voterId);
+  if (!data || !data.link) {
+    toast('Aucun lien disponible pour ce votant', 'error');
+    return;
+  }
+  onMailtoClick(data.voteUrl, data.voter.club);
+}
+
+function copyVoterMessage(voterId, event) {
+  if (event) event.stopPropagation();
+  const data = getVoterEmailData(voterId);
+  if (!data || !data.link) {
+    toast('Aucun lien disponible pour ce votant', 'error');
+    return;
+  }
+  navigator.clipboard.writeText(data.body)
+    .then(() => toast(`Message d'invitation copié pour ${data.voter.club}`, 'success'))
+    .catch(() => toast('Erreur lors de la copie', 'error'));
+}
+
+function copyVoterLink(voterId, event) {
+  if (event) event.stopPropagation();
+  const data = getVoterEmailData(voterId);
+  if (!data || !data.link) {
+    toast('Aucun lien disponible', 'error');
+    return;
+  }
+  copy(data.voteUrl);
+}
+
+function copyAllVoterLinks() {
+  const voters = state.voters;
+  if (!voters.length) {
+    toast('Aucun votant enregistré', 'error');
+    return;
+  }
+  const rows = voters.map(v => {
+    const link = state.links.find(l => l.voter_id === v.id);
+    const url = link ? getVoterUrl(link.token) : 'Sans lien';
+    return `${v.club}\t${v.voices} voix\t${v.delegate || '—'}\t${v.email || '—'}\t${url}`;
+  });
+  const text = ['Club\tVoix\tDélégué\tEmail\tLien de vote', ...rows].join('\n');
+  navigator.clipboard.writeText(text)
+    .then(() => toast(`${voters.length} liens copiés au format tableau !`, 'success'))
+    .catch(() => toast('Erreur lors de la copie', 'error'));
+}
+
+// ═══════════════════════════════
+//  SECOND TOUR (BALLOTTAGE)
+// ═══════════════════════════════
+function openRound2Modal() {
+  const cands = state.candidates;
+  if (!cands.length) {
+    toast('Aucun candidat enregistré', 'error');
+    return;
+  }
+  const totalVotes = state.voteCount;
+  const sorted = [...cands].map(c => ({ ...c, points: pointsOf(c.id) })).sort((a,b) => b.points - a.points);
+
+  const candListHtml = sorted.map((c, i) => `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;text-transform:none;">
+      <input type="checkbox" class="round2-cand-cb" value="${c.id}" checked style="width:18px;height:18px;margin:0;">
+      <div style="flex:1;">
+        <span style="font-weight:600">${esc(c.name)}</span>
+        <span style="color:var(--muted);font-size:12px;margin-left:8px;">${esc(candDesc(c) || '')}</span>
+      </div>
+      <span class="badge badge-accent">${c.points} pts</span>
+    </label>
+  `).join('');
+
+  document.getElementById('round2-cands-container').innerHTML = candListHtml;
+  document.getElementById('round2-max-votes').value = Math.min(2, sorted.length) || 1;
+  document.getElementById('round2-votes-info').textContent = `${totalVotes} vote(s) exprimé(s) au 1er tour seront archivés.`;
+  openModal('round2-modal');
+}
+
+function selectAllRound2Cands(checked) {
+  document.querySelectorAll('.round2-cand-cb').forEach(cb => cb.checked = checked);
+}
+
+async function launchRound2() {
+  const confirmBtn = document.getElementById('round2-confirm-btn');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Passage au tour 2 en cours...';
+
+  try {
+    // 1. Archiver le 1er tour (gagnants et classement)
+    const totalPoints = state.results.reduce((a, r) => a + r.points, 0);
+    const candidatesData = state.candidates.map(c => ({
+      id: c.id,
+      name: c.name,
+      poste: c.poste,
+      genre: c.genre,
+      medecin: c.medecin,
+      points: pointsOf(c.id),
+      percent: totalPoints > 0 ? Math.round((pointsOf(c.id) / totalPoints) * 100) : 0
+    })).sort((a, b) => b.points - a.points);
+
+    const archive = {
+      archivedAt: new Date().toISOString(),
+      totalVotes: state.voteCount,
+      totalPoints: totalPoints,
+      candidates: candidatesData
+    };
+    localStorage.setItem('election_round1_archive', JSON.stringify(archive));
+    state.round1 = archive;
+
+    // 2. Supprimer les votes actuels (reset des votes)
+    const delVotes = await sb.from('votes').delete().gte('id', 0);
+    if (!ok(delVotes)) throw new Error('Échec de la réinitialisation des votes');
+
+    // 3. Gestion des candidats pour le tour 2
+    const selectedCandIds = Array.from(document.querySelectorAll('.round2-cand-cb:checked')).map(cb => cb.value);
+    if (!selectedCandIds.length) {
+      toast('Veuillez sélectionner au moins un candidat qualifié pour le second tour', 'error');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Confirmer & Lancer le tour 2';
+      return;
+    }
+    const unselectedCandIds = state.candidates.filter(c => !selectedCandIds.includes(c.id)).map(c => c.id);
+
+    if (unselectedCandIds.length > 0) {
+      const delCands = await sb.from('candidates').delete().in('id', unselectedCandIds);
+      if (!ok(delCands)) throw new Error('Échec de la mise à jour des candidats');
+    }
+
+    // 4. Supprimer les anciens liens et créer de nouveaux liens de vote pour chaque votant
+    const delLinks = await sb.from('links').delete().not('id', 'is', null);
+    if (!ok(delLinks)) throw new Error('Échec de la suppression des anciens liens');
+
+    if (state.voters.length > 0) {
+      const newLinks = state.voters.map(linkRowFor);
+      const insLinks = await sb.from('links').insert(newLinks);
+      if (!ok(insLinks)) throw new Error('Échec de la création des nouveaux liens');
+    }
+
+    // 5. Mettre à jour settings (max_votes pour le tour 2, election_open)
+    const rawMax = parseInt(document.getElementById('round2-max-votes').value) || 1;
+    const newMax = Math.min(rawMax, selectedCandIds.length);
+    const openNow = document.getElementById('round2-open-now').checked;
+    await updateSettings({ max_votes: newMax, election_open: openNow });
+
+    closeModal('round2-modal');
+    toast('Second tour lancé ! Gagnants du 1er tour archivés et nouveaux liens générés.', 'success');
+    refresh();
+  } catch (err) {
+    console.error(err);
+    toast(err.message || 'Erreur lors du passage au second tour', 'error');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Confirmer & Lancer le tour 2';
+  }
+}
+
+function renderRound1() {
+  const raw = localStorage.getItem('election_round1_archive');
+  const card = document.getElementById('round1-card');
+  const liveCard = document.getElementById('live-round1-card');
+  const resTitle = document.getElementById('results-card-title');
+  if (resTitle) {
+    resTitle.textContent = raw ? 'Résultats du 2nd tour (en cours)' : 'Résultats';
+  }
+  if (!raw) {
+    if (card) card.style.display = 'none';
+    if (liveCard) liveCard.style.display = 'none';
+    return;
+  }
+  const data = JSON.parse(raw);
+  state.round1 = data;
+  const dateStr = new Date(data.archivedAt).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const html = `
+    <div style="margin-bottom:12px;font-size:12px;color:var(--muted);">
+      Scrutin clos le ${dateStr} · <strong>${data.totalVotes}</strong> votes exprimés · <strong>${data.totalPoints}</strong> points
+    </div>
+    <table style="width:100%;">
+      <thead>
+        <tr>
+          <th>Rang</th>
+          <th>Candidat</th>
+          <th>Détails</th>
+          <th>Points T1</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.candidates.map((c, i) => `
+          <tr>
+            <td data-label="Rang"><span class="badge ${i < 3 ? 'badge-amber' : 'badge-gray'}">#${i + 1}</span></td>
+            <td data-label="Candidat" style="font-weight:600">${esc(c.name)}</td>
+            <td data-label="Détails" style="color:var(--muted);font-size:12px">${esc([c.poste, c.genre, c.medecin ? 'Médecin' : ''].filter(Boolean).join(' · ') || '—')}</td>
+            <td data-label="Points T1"><span class="badge badge-accent">${c.points} pts</span></td>
+            <td data-label="Score" style="font-size:12px;color:var(--muted)">${c.percent}%</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  if (card) {
+    card.style.display = 'block';
+    document.getElementById('round1-content').innerHTML = html;
+    document.getElementById('round1-date').textContent = `Archivé le ${dateStr}`;
+  }
+  if (liveCard) {
+    liveCard.style.display = 'block';
+    document.getElementById('live-round1-content').innerHTML = html;
+  }
+}
+
+function exportRound1CSV() {
+  const raw = localStorage.getItem('election_round1_archive');
+  if (!raw) { toast('Aucune archive disponible', 'error'); return; }
+  const data = JSON.parse(raw);
+  const rows = data.candidates.map((c, i) => `"${i+1}";"${c.name.replace(/"/g, '""')}";"${(c.poste||'').replace(/"/g, '""')}";"${c.genre||''}";"${c.medecin?'Oui':'Non'}";"${c.points}";"${c.percent}%"`);
+  const csv = "\uFEFFRang;Candidat;Poste;Genre;Médecin;Points;Pourcentage\n" + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `resultats_tour_1_${new Date(data.archivedAt).toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export CSV téléchargé !', 'success');
+}
+
+function confirmClearRound1() {
+  if (!confirm("Voulez-vous supprimer définitivement l'archive des résultats du 1er tour ?")) return;
+  localStorage.removeItem('election_round1_archive');
+  state.round1 = null;
+  renderRound1();
+  toast('Archive du 1er tour supprimée', 'success');
+}
+
 // ═══════════════════════════════
 //  IMPORT EXCEL → Supabase
 // ═══════════════════════════════
@@ -1509,8 +1926,11 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 //  INIT
 // ═══════════════════════════════
 async function init() {
-  const voteToken = new URLSearchParams(location.search).get('vote');
+  const params = new URLSearchParams(location.search);
+  const voteToken = params.get('vote');
   if (voteToken) { openVoterPage(voteToken); return; }
+
+  if (params.get('live') === '1') { openLivePage(); return; }
 
   const { data: { session } } = await sb.auth.getSession();
   if (session) { enterAdmin(); return; }
@@ -1519,8 +1939,15 @@ async function init() {
   setGateMode('admin');
 }
 
-// Filet de sécurité si le temps réel est indisponible
-setInterval(() => { if (currentMode === 'admin') refresh(); }, 15000);
+// Filet de sécurité si le temps réel est indisponible + rafraîchissement régulier de la page live
+setInterval(async () => {
+  if (currentMode === 'admin') {
+    refresh();
+  } else if (document.getElementById('page-live') && document.getElementById('page-live').classList.contains('active')) {
+    await loadLiveData();
+    renderLive();
+  }
+}, 5000);
 
 init();
 </script>
