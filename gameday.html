@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Game Day – Maccabi Sarcelles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@700&family=Archivo+Narrow:wght@400;500;600&family=Barlow:wght@500;600;700&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Bebas+Neue&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+  .gd-layout {
+    display: grid;
+    gap: 20px;
+  }
+  @media (min-width: 980px) {
+    .gd-layout {
+      grid-template-columns: minmax(0, 1fr) 420px;
+      align-items: start;
+    }
+    .apercu {
+      position: sticky;
+      top: 72px;
+    }
+    .only-mobile {
+      display: none !important;
+    }
+  }
+  @media (max-width: 979px) {
+    .apercu {
+      order: -1;
+      position: sticky;
+      top: 55px;
+      z-index: 80;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+  }
+  .gd-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .barre {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .barre.nav {
+    flex-wrap: nowrap;
+  }
+  .barre.nav button {
+    width: 44px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  #semaine {
+    flex: 1;
+    text-align: center;
+    color: var(--fg);
+    font: 700 clamp(13px, 3.6vw, 15px)/1.25 var(--ui);
+    text-transform: capitalize;
+  }
+  .matchs {
+    display: grid;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .match {
+    width: 100%;
+    justify-content: space-between;
+    text-align: left;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .match .q {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .match[aria-pressed=true] {
+    background: var(--accent);
+    border-color: var(--focus);
+  }
+  .match[aria-pressed=true] .q {
+    color: var(--fg);
+  }
+  .grille {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .grille { grid-template-columns: 1fr; }
+  }
+  .f.large {
+    grid-column: 1 / -1;
+  }
+  .logos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .logos { grid-template-columns: 1fr; }
+  }
+  .slot {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    background: #0A0E1F;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .slot .vign {
+    height: 64px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg) center/contain no-repeat;
+  }
+  .slot .act {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .slot .act > * {
+    flex: 1;
+    padding: 8px;
+    min-height: 40px;
+    font-size: 13px;
+  }
+  .recadrage {
+    display: grid;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .apercu-body {
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #070A14;
+  }
+  canvas#affiche {
+    width: auto;
+    max-width: 100%;
+    max-height: 70dvh;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #000;
+    touch-action: none;
+    transition: max-height 0.2s ease;
+  }
+  canvas#affiche.drag {
+    cursor: grab;
+  }
+  canvas#affiche.drag:active {
+    cursor: grabbing;
+  }
+  @media (max-width: 767px) {
+    canvas#affiche {
+      max-height: 32dvh;
+    }
+    .stage.expanded canvas#affiche {
+      max-height: 64dvh;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Game Day</h1>
+    <p class="sub">Maccabi Sarcelles · Affiche individuelle de match avec joueur, logos FFBB et export PNG / SVG</p>
+  </header>
+
+  <div class="gd-layout">
+    <div class="gd-controls">
+      <!-- Onglets rapides sur mobile -->
+      <div class="mobile-tabs" id="gdMobileTabs" role="tablist" aria-label="Sections de réglage">
+        <button type="button" class="mobile-tab active" role="tab" aria-selected="true" data-tab="match">1. Match FFBB</button>
+        <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-tab="textes">2. Textes & Logos</button>
+        <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-tab="photos">3. Joueur & Fond</button>
+      </div>
+
+      <fieldset data-tab-panel="match">
+        <legend>Choisir le match</legend>
+        <div class="barre nav">
+          <button type="button" id="prec" aria-label="Week-end précédent">◀</button>
+          <span id="semaine">…</span>
+          <button type="button" id="suiv" aria-label="Week-end suivant">▶</button>
+        </div>
+        <div class="barre">
+          <button type="button" id="charger" class="principal" style="width:100%">Récupérer les matchs</button>
+        </div>
+        <p id="message" role="status"></p>
+        <div class="matchs" id="matchs"></div>
+      </fieldset>
+
+      <fieldset data-tab-panel="textes" class="mobile-hidden">
+        <legend>Textes du match</legend>
+        <div class="grille">
+          <label class="f"><span>Haut gauche (2 lignes)</span><textarea id="topLeft" rows="2"></textarea></label>
+          <label class="f"><span>Haut droite (2 lignes)</span><textarea id="topRight" rows="2"></textarea></label>
+          <label class="f"><span>Date</span><input type="text" id="date"></label>
+          <label class="f"><span>Heure (en bleu)</span><input type="text" id="time"></label>
+          <label class="f large"><span>Équipe qui reçoit (en haut)</span><input type="text" id="team1"></label>
+          <label class="f large"><span>Équipe qui se déplace (en bas)</span><input type="text" id="team2"></label>
+          <div class="f large"><button id="inverser" type="button">⇄ Inverser les deux équipes (et leurs logos)</button></div>
+          <label class="f"><span>Salle</span><input type="text" id="gym"></label>
+          <label class="f"><span>Adresse</span><input type="text" id="address"></label>
+          <label class="f large"><span>Message (2 lignes blanches)</span><textarea id="slogan" rows="2"></textarea></label>
+          <label class="f large"><span>Ligne bleue</span><input type="text" id="cheer"></label>
+        </div>
+      </fieldset>
+
+      <fieldset data-tab-panel="textes" class="mobile-hidden">
+        <legend>Logos du bas</legend>
+        <div class="logos">
+          <div class="slot" data-slot="logo1">
+            <span class="f"><span>Équipe qui reçoit</span></span>
+            <div class="vign"></div>
+            <div class="act">
+              <label class="file">Changer<input type="file" accept="image/*"></label>
+              <button type="button" data-a="maccabi">Maccabi</button>
+              <button type="button" data-a="none">Aucun</button>
+            </div>
+          </div>
+          <div class="slot" data-slot="logo2">
+            <span class="f"><span>Équipe qui se déplace</span></span>
+            <div class="vign"></div>
+            <div class="act">
+              <label class="file">Changer<input type="file" accept="image/*"></label>
+              <button type="button" data-a="maccabi">Maccabi</button>
+              <button type="button" data-a="none">Aucun</button>
+            </div>
+          </div>
+          <div class="slot" data-slot="badge">
+            <span class="f"><span>Compétition</span></span>
+            <div class="vign"></div>
+            <div class="act">
+              <label class="file">Changer<input type="file" accept="image/*"></label>
+              <button type="button" data-a="none">Aucun</button>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset data-tab-panel="photos" class="mobile-hidden">
+        <legend>Photo du joueur</legend>
+        <div class="barre">
+          <label class="file primary">Changer la photo<input type="file" id="playerFile" accept="image/*"></label>
+          <button type="button" id="playerReset">Photo d'origine</button>
+        </div>
+        <label class="chk">
+          <input type="checkbox" id="playerPipeline" checked>
+          Retouche Pro auto (contraste, ombres froides, netteté & halo bleu)
+        </label>
+        <p class="hint" id="pipelineStatus">Idéal : un PNG détouré (fond transparent), au moins 1000 px de haut.</p>
+        <div class="barre">
+          <span class="seg" role="radiogroup" aria-label="Recadrage">
+            <input type="radio" name="crop" id="c-off" value="off" checked><label for="c-off">Image entière</label>
+            <input type="radio" name="crop" id="c-on" value="on"><label for="c-on">Recadrer</label>
+          </span>
+        </div>
+        <div class="recadrage" id="recadrage" hidden>
+          <label class="f"><span>Zoom <strong id="zoomVal">100%</strong></span><input type="range" id="zoom" min="50" max="250" value="100"></label>
+          <label class="f"><span>Gauche / droite</span><input type="range" id="dx" min="-500" max="500" value="0"></label>
+          <label class="f"><span>Haut / bas</span><input type="range" id="dy" min="-600" max="600" value="0"></label>
+          <div class="barre"><button type="button" id="cropReset">Recentrer</button></div>
+          <p class="hint">Tu peux aussi faire glisser la photo à 1 doigt ou pincer à 2 doigts directement sur l'aperçu.</p>
+        </div>
+      </fieldset>
+
+      <fieldset data-tab-panel="photos" class="mobile-hidden">
+        <legend>Photo de fond</legend>
+        <div class="barre">
+          <label class="file primary">Changer le fond<input type="file" id="bgFile" accept="image/*"></label>
+          <button type="button" id="bgReset">Fond d'origine</button>
+        </div>
+        <div class="barre">
+          <span class="seg" role="radiogroup" aria-label="Recadrage du fond">
+            <input type="radio" name="bgCrop" id="bgc-off" value="off" checked><label for="bgc-off">Fond centré</label>
+            <input type="radio" name="bgCrop" id="bgc-on" value="on"><label for="bgc-on">Rogner / Recadrer</label>
+          </span>
+        </div>
+        <div class="recadrage" id="bgRecadrage" hidden>
+          <label class="f"><span>Zoom fond <strong id="bgZoomVal">100%</strong></span><input type="range" id="bgZoom" min="50" max="300" value="100"></label>
+          <label class="f"><span>Gauche / droite</span><input type="range" id="bgDx" min="-600" max="600" value="0"></label>
+          <label class="f"><span>Haut / bas</span><input type="range" id="bgDy" min="-600" max="600" value="0"></label>
+          <div class="barre"><button type="button" id="bgCropReset">Recentrer le fond</button></div>
+          <p class="hint">Glisse à 1 doigt ou pince à 2 doigts sur l'aperçu pour déplacer et zoomer le fond.</p>
+        </div>
+      </fieldset>
+    </div>
+
+    <section class="apercu stage" id="gdStage" aria-label="Aperçu">
+      <div class="stage-bar">
+        <span class="lbl">Aperçu Game Day (1554 × 2764 HD)</span>
+        <button type="button" class="only-mobile" id="toggleGdPreview">Agrandir</button>
+      </div>
+      <div class="apercu-body">
+        <canvas id="affiche" width="777" height="1382" aria-label="Aperçu de l'affiche Game Day"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <section class="export sticky-mobile" aria-label="Export">
+    <button type="button" id="png" class="principal">Enregistrer en PNG</button>
+    <button type="button" id="partager">Partager</button>
+    <button type="button" id="svg">SVG</button>
+  </section>
+  <p class="hint">PNG exporté en Haute Définition (1554 × 2764 px). Le SVG conserve les textes et les logos vectoriels modifiables.</p>
+</main>
+<script type="module" src="gameday.js"></script>
+</body>
+</html>
+

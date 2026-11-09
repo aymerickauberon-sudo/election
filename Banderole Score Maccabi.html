@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Banderole Score Maccabi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:ital,wght@0,800;1,900&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+  .view {
+    max-height: 68dvh;
+    transition: max-height 0.2s ease;
+  }
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 66dvh;
+    width: auto;
+    height: auto;
+    cursor: grab;
+    touch-action: none;
+  }
+  canvas:active {
+    cursor: grabbing;
+  }
+  .thumb.cover {
+    background-size: cover;
+  }
+  /* Stepper de score ergonomique au pouce */
+  .score-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .score-step {
+    width: 48px;
+    min-height: 48px;
+    padding: 0;
+    font: 800 22px/1 var(--display);
+    flex-shrink: 0;
+  }
+  /* Sur mobile : aperçu collant en haut pour voir ses modifications en direct */
+  @media (max-width: 767px) {
+    .stage {
+      position: sticky;
+      top: 55px;
+      z-index: 80;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+    .view {
+      max-height: 32dvh;
+    }
+    canvas {
+      max-height: 30dvh;
+    }
+    .stage.expanded .view {
+      max-height: 62dvh;
+    }
+    .stage.expanded canvas {
+      max-height: 60dvh;
+    }
+    .hide-mobile {
+      display: none !important;
+    }
+  }
+  @media (min-width: 768px) {
+    .only-mobile {
+      display: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Banderole score</h1>
+    <p class="sub">Maccabi Sarcelles · Photo de fin de match + banderole par-dessus</p>
+  </header>
+
+  <section class="stage" id="stageSection" aria-label="Aperçu">
+    <div class="stage-bar">
+      <div class="stage-bar-group">
+        <label class="file primary">
+          Photo du match
+          <input type="file" id="photoFileTop" accept="image/*">
+        </label>
+        <span class="lbl" id="dimLabel">1600 × 1000 px</span>
+      </div>
+      <div class="stage-bar-group">
+        <button type="button" class="only-mobile" id="togglePreviewSize" aria-label="Agrandir ou réduire l'aperçu">Agrandir</button>
+        <span class="lbl hide-mobile">Aperçu :</span>
+        <span class="seg" role="radiogroup" aria-label="Fond de l'aperçu">
+          <input type="radio" name="view" id="v-checker" value="checker" checked><label for="v-checker">Damier</label>
+          <input type="radio" name="view" id="v-photo" value="photo"><label for="v-photo">Photo</label>
+          <input type="radio" name="view" id="v-light" value="light"><label for="v-light">Blanc</label>
+        </span>
+      </div>
+    </div>
+    <div class="view checker" id="view">
+      <canvas id="cv" width="1600" height="1000" role="img" aria-label="Aperçu photo et banderole de score"></canvas>
+    </div>
+  </section>
+
+  <!-- Onglets rapides sur mobile pour éviter le long défilement -->
+  <div class="mobile-tabs" id="mobileTabs" role="tablist" aria-label="Sections de réglage">
+    <button type="button" class="mobile-tab active" role="tab" aria-selected="true" data-tab="scores">1. Équipes & Score</button>
+    <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-tab="photo">2. Photo & Format</button>
+    <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-tab="style">3. Textes & Style</button>
+  </div>
+
+  <div class="grid">
+    <fieldset data-tab-panel="photo" class="mobile-hidden">
+      <legend>Photo du match & Format</legend>
+      <div class="logo-row">
+        <span class="thumb cover" id="photoThumb" aria-hidden="true"></span>
+        <label class="file primary">Choisir une photo<input type="file" id="photoFile" accept="image/*"></label>
+        <button type="button" id="removePhoto" hidden>Retirer</button>
+      </div>
+      <p class="hint" id="photoStatus">Glisse à 1 doigt sur l'aperçu pour cadrer la photo, ou pince à 2 doigts pour zoomer.</p>
+
+      <label class="field">
+        <span>Format de sortie</span>
+        <select id="formatSelect">
+          <option value="auto">Photo d’origine (proportions de la photo)</option>
+          <option value="post">Post 4:5 (1080 × 1350)</option>
+          <option value="square">Carré 1:1 (1080 × 1080)</option>
+          <option value="story">Story 9:16 (1080 × 1920)</option>
+          <option value="wide">Paysage 16:9 (1600 × 900)</option>
+          <option value="banner">Banderole seule sans photo (1600 × 698)</option>
+        </select>
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span>Zoom photo <strong id="photoZoomVal">100%</strong></span>
+          <input type="range" id="photoZoom" min="100" max="250" step="2" value="100">
+        </label>
+        <label class="field">
+          <span>Taille banderole <strong id="bannerScaleVal">100%</strong></span>
+          <input type="range" id="bannerScale" min="70" max="115" step="1" value="100">
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="field">
+          <span>Cadrage horizontal (X)</span>
+          <input type="range" id="photoPanX" min="-100" max="100" step="1" value="0">
+        </label>
+        <label class="field">
+          <span>Cadrage vertical (Y)</span>
+          <input type="range" id="photoPanY" min="-100" max="100" step="1" value="0">
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Hauteur de la banderole (décalage bas)</span>
+        <input type="range" id="bannerOffsetY" min="0" max="300" step="5" value="0">
+      </label>
+
+      <button type="button" id="resetFraming">Réinitialiser le cadrage</button>
+    </fieldset>
+
+    <fieldset data-tab-panel="scores">
+      <legend>Domicile</legend>
+      <label class="field"><span>Nom (une ligne par rang)</span><textarea id="homeName" rows="2">MACCABI
+SARCELLES</textarea></label>
+      <div class="field">
+        <span>Score domicile</span>
+        <div class="score-box">
+          <button type="button" class="score-step" data-score-step="home:-1" aria-label="Retirer 1 point domicile">−</button>
+          <input type="text" id="homeScore" class="score" value="00" inputmode="numeric" maxlength="3" aria-label="Score domicile">
+          <button type="button" class="score-step" data-score-step="home:1" aria-label="Ajouter 1 point domicile">+</button>
+        </div>
+      </div>
+      <div class="logo-row">
+        <span class="thumb" id="homeThumb" aria-hidden="true"></span>
+        <label class="file">Logo<input type="file" id="homeFile" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>
+        <button type="button" id="homeMaccabi">Logo Maccabi</button>
+        <button type="button" id="homeNone">Aucun</button>
+      </div>
+    </fieldset>
+
+    <fieldset data-tab-panel="scores">
+      <legend>Extérieur</legend>
+      <label class="field"><span>Nom (une ligne par rang)</span><textarea id="awayName" rows="2">ÉQUIPE
+ADVERSE</textarea></label>
+      <div class="field">
+        <span>Score extérieur</span>
+        <div class="score-box">
+          <button type="button" class="score-step" data-score-step="away:-1" aria-label="Retirer 1 point extérieur">−</button>
+          <input type="text" id="awayScore" class="score" value="00" inputmode="numeric" maxlength="3" aria-label="Score extérieur">
+          <button type="button" class="score-step" data-score-step="away:1" aria-label="Ajouter 1 point extérieur">+</button>
+        </div>
+      </div>
+      <div class="logo-row">
+        <span class="thumb" id="awayThumb" aria-hidden="true"></span>
+        <label class="file">Logo<input type="file" id="awayFile" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>
+        <button type="button" id="awayMaccabi">Logo Maccabi</button>
+        <button type="button" id="awayNone">Aucun</button>
+      </div>
+      <button type="button" id="swap">⇄ Inverser domicile / extérieur</button>
+    </fieldset>
+
+    <fieldset data-tab-panel="style" class="mobile-hidden">
+      <legend>Textes et style</legend>
+      <label class="field"><span>Au-dessus du score</span><input type="text" id="top" value="SCORE FINAL" list="topList"></label>
+      <datalist id="topList">
+        <option value="SCORE FINAL">
+        <option value="MI-TEMPS">
+        <option value="EN DIRECT">
+        <option value="FIN DU 3E QT">
+      </datalist>
+      <label class="field"><span>Sous le score (optionnel)</span><input type="text" id="info" value="" placeholder="Ex. Pré-nationale masculine · Journée 7"></label>
+      <div class="field"><span>Fond</span>
+        <span class="seg" role="radiogroup" aria-label="Fond">
+          <input type="radio" name="bg" id="b-fade" value="fade" checked><label for="b-fade">Fondu transparent</label>
+          <input type="radio" name="bg" id="b-solid" value="solid"><label for="b-solid">Plein</label>
+          <input type="radio" name="bg" id="b-none" value="none"><label for="b-none">Aucun</label>
+        </span>
+      </div>
+      <div class="field"><span>Bande du bas</span>
+        <div class="swatches" id="swatches">
+          <button type="button" class="sw" data-c="#3D4BC9" style="background:#3D4BC9" aria-label="Bleu" aria-pressed="true"></button>
+          <button type="button" class="sw" data-c="#2D3387" style="background:#2D3387" aria-label="Bleu club" aria-pressed="false"></button>
+          <button type="button" class="sw" data-c="#F5B82E" style="background:#F5B82E" aria-label="Or" aria-pressed="false"></button>
+          <button type="button" class="sw" data-c="#FFFFFF" style="background:#FFFFFF" aria-label="Blanc" aria-pressed="false"></button>
+          <button type="button" class="sw" data-c="" style="background:transparent" aria-label="Sans bande" aria-pressed="false"></button>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+
+  <section class="export sticky-mobile" aria-label="Export">
+    <span class="seg" role="radiogroup" aria-label="Taille">
+      <input type="radio" name="scale" id="s1" value="1"><label for="s1">1×</label>
+      <input type="radio" name="scale" id="s2" value="2" checked><label for="s2">2× HD</label>
+    </span>
+    <button type="button" class="primary" id="savePng">Enregistrer en PNG</button>
+    <button type="button" id="shareBtn">Partager</button>
+    <button type="button" id="saveSvg">SVG</button>
+    <p id="status" role="status"></p>
+  </section>
+  <p class="hint">Le PNG exporte la photo du match avec la banderole par-dessus (ou la banderole transparente seule). Le SVG est vectoriel et utilise Barlow Condensed (Google Fonts).</p>
+</main>
+<script type="module" src="banderole.js"></script>
+</body>
+</html>

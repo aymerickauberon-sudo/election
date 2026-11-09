@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Weekend Match – Maccabi Sarcelles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700&family=Archivo+Narrow:wght@500;600&family=Barlow:wght@500;600;700&family=Barlow+Condensed:ital,wght@0,800;1,900&family=Bebas+Neue&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+  .wm-layout {
+    display: grid;
+    gap: 20px;
+  }
+  @media (min-width: 960px) {
+    .wm-layout {
+      grid-template-columns: minmax(0, 1fr) 420px;
+      align-items: start;
+    }
+    .apercu {
+      position: sticky;
+      top: 72px;
+    }
+    .wm-mobile-tabs {
+      display: none !important;
+    }
+  }
+  @media (max-width: 959px) {
+    .wm-mobile-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: var(--panel);
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      position: sticky;
+      top: 55px;
+      z-index: 85;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    .wm-panel-hidden {
+      display: none !important;
+    }
+  }
+  .barre {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .barre.nav {
+    flex-wrap: nowrap;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 10px;
+  }
+  .barre.nav button {
+    width: 44px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  #semaine {
+    flex: 1;
+    text-align: center;
+    color: var(--fg);
+    font: 700 clamp(13px, 3.6vw, 15px)/1.25 var(--ui);
+    text-transform: capitalize;
+  }
+  #charger {
+    flex: 1 1 200px;
+  }
+  #message {
+    margin: 4px 0 12px;
+  }
+  .carte {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .carte.off {
+    opacity: .5;
+  }
+  .tete {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .inc {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 800 17px/1 var(--display);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    cursor: pointer;
+    min-height: 38px;
+  }
+  .resume-match {
+    flex: 1 1 180px;
+    min-width: 0;
+    cursor: pointer;
+  }
+  .resume-equipes {
+    font: 700 14px/1.25 var(--ui);
+    color: var(--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .resume-meta {
+    font: 500 12px/1.3 var(--ui);
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .badge-warn {
+    color: var(--warn);
+    font-weight: 700;
+  }
+  .act {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .act button {
+    padding: 6px 10px;
+    min-height: 38px;
+    min-width: 38px;
+  }
+  .carte-details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .carte:not(.open) .carte-details {
+    display: none;
+  }
+  .grille {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 520px) {
+    .grille { grid-template-columns: 1fr; }
+  }
+  .src {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .apercu-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .apercu-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  canvas#affiche {
+    width: 100%;
+    max-height: 72dvh;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #2D3387;
+  }
+  #alerte {
+    color: var(--warn);
+    font-size: 13px;
+    min-height: 1em;
+    margin: 8px 0 0;
+    width: 100%;
+  }
+  .discret {
+    background: none;
+    border: none;
+    color: var(--muted);
+    text-decoration: underline;
+    padding: 4px 0;
+    min-height: auto;
+    font: 500 13px/1.3 var(--ui);
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Weekend Match</h1>
+    <p class="sub">Maccabi Sarcelles · Les matchs du week-end récupérés sur le site FFBB, prêts à poster</p>
+  </header>
+
+  <!-- Sélecteur rapide mobile : Liste des matchs vs Aperçu de l'affiche -->
+  <div class="wm-mobile-tabs" id="wmMobileTabs" role="tablist" aria-label="Vue mobile">
+    <button type="button" class="mobile-tab active" role="tab" aria-selected="true" data-wm-tab="liste" id="tabBtnListe">1. Matchs</button>
+    <button type="button" class="mobile-tab" role="tab" aria-selected="false" data-wm-tab="apercu" id="tabBtnApercu">2. Aperçu de l'affiche</button>
+  </div>
+
+  <div class="wm-layout">
+    <section id="panelListe" aria-label="Liste des matchs">
+      <div class="barre nav">
+        <button type="button" id="prec" title="Week-end précédent" aria-label="Week-end précédent">◀</button>
+        <span id="semaine">…</span>
+        <button type="button" id="suiv" title="Week-end suivant" aria-label="Week-end suivant">▶</button>
+      </div>
+      <div class="barre">
+        <button type="button" id="charger" class="principal">Récupérer les matchs</button>
+        <label class="chk"><input type="checkbox" id="vendredi"> Inclure le vendredi</label>
+      </div>
+      <p id="message" role="status"></p>
+      <div id="liste"></div>
+      <button type="button" id="ajouter" style="width:100%">+ Ajouter un match à la main</button>
+      <p><button type="button" class="discret" id="oublier">Oublier mes noms raccourcis</button></p>
+    </section>
+
+    <section id="panelApercu" class="apercu apercu-card wm-panel-hidden" aria-label="Aperçu de l'affiche">
+      <div class="stage-bar">
+        <span class="seg" role="radiogroup" aria-label="Format de l'affiche">
+          <input type="radio" name="format" id="f-story" value="story" checked><label for="f-story">Story 9:16</label>
+          <input type="radio" name="format" id="f-post" value="post"><label for="f-post">Post 4:5</label>
+        </span>
+        <label class="chk"><input type="checkbox" id="soustitre" checked> Sous-titre</label>
+      </div>
+      <div class="apercu-body">
+        <canvas id="affiche" width="1080" height="1900" aria-label="Aperçu de l'affiche"></canvas>
+        <div id="alerte"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="export sticky-mobile" aria-label="Export de l'affiche">
+    <button type="button" id="telecharger" class="principal">Enregistrer en PNG</button>
+    <button type="button" id="partager">Partager</button>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
